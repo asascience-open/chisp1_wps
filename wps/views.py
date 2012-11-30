@@ -99,8 +99,8 @@ def wps(request):
             return describeProcess100(identifier)
         elif call == 'execute':
             identifier = getIdentifier(request)
-            inputs = getDataInputs100(request)
-            return execute(identifier, inputs)
+            inputs = getDataInputs(request)
+            return execute100(identifier, inputs)
         elif call == 'getcapabilities':
             return getCapabilities100()
     else:

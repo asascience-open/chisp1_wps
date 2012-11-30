@@ -139,10 +139,15 @@ def describeProcess100(identifier):
     return HttpResponse(response)
 
 def execute100(identifier, inputs):
-    inputs = inputs.strip("]").strip("[").replace(";",",")
+    inputdict = {}
+    inputs = inputs.strip("]").strip("[").split(";")
+    for input in inputs:
+        inputpair = input.split("=")
+        inputdict[inputpair[0]] = inputpair[1]
     constructor = globals()[identifier]
     process = constructor()
-    process.execute(inputs)
+    out = process.execute(**inputdict)
+    response = str(out)
     return HttpResponse(response)
 
 def getCapabilities100():

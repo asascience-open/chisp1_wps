@@ -6,11 +6,25 @@ Replace this with more appropriate tests for your application.
 """
 
 from django.test import TestCase
+import views
 
+class WpsTests(TestCase):
+    def test_describeprocess100(self):
+        """
+        Test of wps version 1.0.0 describe process function
+        """
+        response = views.describeProcess100("all").content
+        assert response == "['Test Process', 'This is a test process for the sci-wps server.', ['value1', 'value2', 'value3'], 'Process outputs xml of mutiplication of input values.']"
 
-class SimpleTest(TestCase):
-    def test_basic_addition(self):
+    def test_execute100(self):
         """
-        Tests that 1 + 1 always equals 2.
+        Test of wps version 1.0.0 execute function
         """
-        self.assertEqual(1 + 1, 2)
+        response = views.execute100("test_process", "value1=1;value2=2;value3=1").content
+        assert response == "2.0"
+
+    def test_getcapabilities100(self):
+        """
+        Test of wps version 1.0.0 getcapabilities function
+        """
+        pass

@@ -14,5 +14,6 @@ class test_process(process):
     def __init__(self):
         pass
 
-    def execute(value1, value2, value3):
+    def execute(self, value1, value2, value3):
+        value1, value2, value3 = float(value1), float(value2), float(value3)
         return value1 * value2 * value3

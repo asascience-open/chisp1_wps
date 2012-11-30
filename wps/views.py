@@ -100,7 +100,6 @@ def wps(request):
         elif call == 'execute':
             identifier = getIdentifier(request)
             inputs = getDataInputs(request)
-            print inputs
             return execute100(identifier, inputs)
         elif call == 'getcapabilities':
             return getCapabilities100()

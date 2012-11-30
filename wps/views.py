@@ -20,23 +20,23 @@ def getIdentifier(request):
 
 def getDataInputs(request):
     try:
-        inputs = request.GET["datainputs"].lower()
+        inputs = request.GET["datainputs"]
     except:
         pass
     try:
-        inputs = request.GET["Datainputs"].lower()
+        inputs = request.GET["Datainputs"]
     except:
         pass
     try:
-        inputs = request.GET["dataInputs"].lower()
+        inputs = request.GET["dataInputs"]
     except:
         pass
     try:
-        inputs = request.GET["DataInputs"].lower()
+        inputs = request.GET["DataInputs"]
     except:
         pass
     try:
-        inputs = request.GET["DATAINPUTS"].lower()
+        inputs = request.GET["DATAINPUTS"]
     except:
         pass
     return inputs
@@ -58,15 +58,15 @@ def getRequest(request):
 
 def getVersion(request):
     try:
-        ver = request.GET["version"].lower()
+        ver = request.GET["version"]
     except:
         pass
     try:
-        ver = request.GET["Version"].lower()
+        ver = request.GET["Version"]
     except:
         pass
     try:
-        ver = request.GET["VERSION"].lower()
+        ver = request.GET["VERSION"]
     except:
         pass
     return ver
@@ -100,6 +100,7 @@ def wps(request):
         elif call == 'execute':
             identifier = getIdentifier(request)
             inputs = getDataInputs(request)
+            print inputs
             return execute100(identifier, inputs)
         elif call == 'getcapabilities':
             return getCapabilities100()

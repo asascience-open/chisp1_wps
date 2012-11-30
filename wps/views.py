@@ -121,7 +121,7 @@ def describeProcess100(identifier):
                 response = str([process.title,
                               process.abstract,
                               process.inputs,
-                              process.outputs])
+                              process.outputs]) # Replace this with template response
             except:
                 pass
     else:
@@ -135,7 +135,7 @@ def describeProcess100(identifier):
                 response = str([process.title,
                           process.abstract,
                           process.inputs,
-                          process.outputs])
+                          process.outputs]) # Replace this with template response
     return HttpResponse(response)
 
 def execute100(identifier, inputs):
@@ -147,8 +147,8 @@ def execute100(identifier, inputs):
     constructor = globals()[identifier]
     process = constructor()
     out = process.execute(**inputdict)
-    response = str(out)
+    response = str(out) # Add template reponse here
     return HttpResponse(response)
 
 def getCapabilities100():
-    return HttpResponse()
+    return HttpResponse() # Add template response here

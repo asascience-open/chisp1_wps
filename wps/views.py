@@ -150,7 +150,7 @@ def execute100(identifier, inputs):
     constructor = globals()[identifier]
     process = constructor()
     out = process.execute(**inputdict)
-    response = out # Add template reponse here
+    response = out # Render response in wps process
     return HttpResponse(response)
 
 def getCapabilities100():
@@ -169,9 +169,6 @@ def getCapabilities100():
             pass
     context["server"] = Server.objects.values()[0]
     context["server_keywords"] = Server.objects.get().keywords.split(",")
-    #return dshorts.render_to_response(
-    #    os.path.join(template_dir, 'getcaps.xml'),
-    #    context)
     f = open(os.path.join(template_dir, 'getcaps.xml'))
     text = f.read()
     f.close()

@@ -2,6 +2,11 @@ import os, sys
 from django.http import HttpResponse
 import wps_processes
 from wps_processes import *
+import django.shortcuts as dshorts
+from django.template import Context, Template
+from wps.models import Server
+
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
 
 def getIdentifier(request):
     try:
@@ -92,7 +97,10 @@ def getBoundingBox(request):
 
 def wps(request):
     call = getRequest(request)
-    ver = getVersion(request)
+    try:
+        ver = getVersion(request)
+    except:
+        ver = "1.0.0" # Default to 1.0.0 if not supplied
     if ver == "1.0.0":
         if call == 'describeprocess':
             identifier = getIdentifier(request)
@@ -108,35 +116,30 @@ def wps(request):
 
 def describeProcess100(identifier):
     processes = dir(wps_processes)
+    context = {"processes":[]}
     if identifier == "all":
-        for process in processes:
+        for processname in processes:
             try:
-                constructor = globals()[process]
+                constructor = globals()[processname]
                 process = constructor()
                 process.is_wps
-                #process.title
-                #process.abstract
-                #process.inputs
-                #process.outputs
-                response = str([process.title,
-                              process.abstract,
-                              process.inputs,
-                              process.outputs]) # Replace this with template response
+                if process.version != 0:
+                    process.identifier = processname
+                    context["processes"].append(process)
             except:
                 pass
     else:
-        for process in processes:
-            if process == identifier:
+        for processname in processes:
+            if processname == identifier:
+                constructor = globals()[processname]
+                process = constructor()
                 process.is_wps
-                #process.title
-                #process.abstract
-                #process.inputs
-                #process.outputs
-                response = str([process.title,
-                          process.abstract,
-                          process.inputs,
-                          process.outputs]) # Replace this with template response
-    return HttpResponse(response)
+                context["processes"].append(process)
+    f = open(os.path.join(template_dir, 'describeproc.xml'))
+    text = f.read()
+    f.close()
+    context_dict = Context(context)
+    return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
 
 def execute100(identifier, inputs):
     inputdict = {}
@@ -147,8 +150,30 @@ def execute100(identifier, inputs):
     constructor = globals()[identifier]
     process = constructor()
     out = process.execute(**inputdict)
-    response = str(out) # Add template reponse here
+    response = out # Add template reponse here
     return HttpResponse(response)
 
 def getCapabilities100():
-    return HttpResponse() # Add template response here
+    processes = dir(wps_processes)
+    context = {}
+    context["processes"] = []
+    for processname in processes:
+        try:
+            constructor = globals()[processname]
+            process = constructor()
+            process.is_wps
+            if process.version != 0:
+                process.identifier = processname
+                context["processes"].append(process)
+        except:
+            pass
+    context["server"] = Server.objects.values()[0]
+    context["server_keywords"] = Server.objects.get().keywords.split(",")
+    #return dshorts.render_to_response(
+    #    os.path.join(template_dir, 'getcaps.xml'),
+    #    context)
+    f = open(os.path.join(template_dir, 'getcaps.xml'))
+    text = f.read()
+    f.close()
+    context_dict = Context(context)
+    return HttpResponse(Template(text).render(context_dict), content_type="text/xml")

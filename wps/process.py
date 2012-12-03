@@ -2,9 +2,10 @@
 class process(object):
     title = ""
     abstract = ""
-    inputs = []
-    outputs = ""
+    inputs = {}
+    outputs = {}
     is_wps = True
+    version = 0
     def __init__(self):
         pass
 

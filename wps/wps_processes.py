@@ -3,14 +3,39 @@ from process import process
 
 # Here is a test and example implementation of a wps process
 class test_process(process):
-    # These fields are required by the wps descriverprocess request
+    # These fields are required by the wps descriverprocess and getcapabilities
+    # requests
     title = "Test Process"
     abstract = "This is a test process for the sci-wps server."
-    inputs = ['value1',
-              'value2',
-              'value3',
+    inputs = [
+               {"identifier":"value1", #identifier for parameter, same as keyword
+                                       #for argument in execute method (below)
+                "abstract":"value1", #abstract for parameter
+                "title":"value1", #title of parameter
+                "literal":True, #is literaldata, otherwise complex
+                "datatype":"float", #datatype
+                "reference":""}, #ows:Reference or Schema to datatype
+               {"identifier":"value2",
+                "abstract":"value2",
+                "title":"value2",
+                "literal":True,
+                "datatype":"float",
+                "reference":""},
+               {"identifier":"value3",
+                "abstract":"value3",
+                "title":"value3",
+                "literal":True,
+                "datatype":"float",
+                "reference":""},
              ]
-    outputs = "Process outputs xml of mutiplication of input values."
+    outputs = [
+                {"identifier":"OUTPUT",
+                 "abstract":"Process outputs xml of mutiplication of input values.",
+                 "datatype":"text/xml",
+                 "title":"output title",
+                 "literal":False},
+              ]
+    version = "1.0"
 
     def __init__(self):
         # Do nothing here
@@ -31,4 +56,4 @@ class test_process(process):
         # of their input parameters to the correct python type for execution
         value1, value2, value3 = float(value1), float(value2), float(value3)
 
-        return value1 * value2 * value3
+        return "<float>"+str(value1 * value2 * value3)+"</float>"

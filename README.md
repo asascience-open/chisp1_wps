@@ -1,9 +1,8 @@
-sci-wps
+chisp1_wps
 =======
 
-####A generic Python WPS service
+####WPS Services for the OGC CHISP1 Interoperability Experiment
 
 ##Desciption
 
-This is a very early dev version of a generic wps server written in python.
-No release schedule is planned yet. Not ready to be used by others yet.
+This is the OGC:WPS service/server for the ASA Scenario #1 and #2 components for the CHISP1 project.

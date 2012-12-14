@@ -25,3 +25,6 @@ class Server(models.Model):
     implementation_site     = models.CharField(max_length=1000, help_text="Web Address for This Implementation", blank=False)
 
 # Add other implementation specific classes here
+class RiverSegment(models.Model):
+	title = models.CharField(max_length=1000, help_text="NHN River Segment ID for both US and Canadian River Reaches", blank=False)
+	gauges_located_on_river = models.CharField(help_text="Comma Separated List of Stream Gauge IDs", blank=True)

@@ -57,3 +57,89 @@ class test_process(process):
         value1, value2, value3 = float(value1), float(value2), float(value3)
 
         return "<float>"+str(value1 * value2 * value3)+"</float>"
+
+class add_gauge_to_stream(process):
+    # These fields are required by the wps descriverprocess and getcapabilities
+    # requests
+    title = "Add list of gauge ids to river segments"
+    abstract = "Add relationship method for the CHISP1 Scenario #1 experiment"
+    inputs = [
+               {"identifier":"gauge_ids", #identifier for parameter, same as keyword
+                                       #for argument in execute method (below)
+                "abstract":"List of gauge ids that correspond to the SOS station ids", #abstract for parameter
+                "title":"Gauge IDs", #title of parameter
+                "literal":True, #is literaldata, otherwise complex
+                "datatype":"list", #datatype
+                "reference":""}, #ows:Reference or Schema to datatype
+               {"identifier":"nhn_river_id",
+                "abstract":"River segment ID in the Canadian NHN ID format",
+                "title":"River Reach ID",
+                "literal":True,
+                "datatype":"string",
+                "reference":""},
+             ]
+    outputs = [
+                {"identifier":"Status",
+                 "abstract":"Message for success or informative error message if there were problems performing the request",
+                 "datatype":"text/xml",
+                 "title":"Add Status",
+                 "literal":False},
+              ]
+    version = "1.0"
+
+    def __init__(self):
+        # Do nothing here
+        pass
+
+    def execute(self, gauge_ids, nhn_river_id):
+        # All wps processes are required to convert the str representation
+        # of their input parameters to the correct python type for execution
+        gauge_ids = gauge_ids.split(",") # Probably a list of strings
+
+		# Do django models here: Add
+		pass
+
+        return "Success!"
+
+class remove_gauge_from_stream(process):
+    # These fields are required by the wps descriverprocess and getcapabilities
+    # requests
+    title = "Remove list of gauge ids from river segments"
+    abstract = "Add relationship method for the CHISP1 Scenario #1 experiment"
+    inputs = [
+               {"identifier":"gauge_ids", #identifier for parameter, same as keyword
+                                       #for argument in execute method (below)
+                "abstract":"List of gauge ids that correspond to the SOS station ids", #abstract for parameter
+                "title":"Gauge IDs", #title of parameter
+                "literal":True, #is literaldata, otherwise complex
+                "datatype":"list", #datatype
+                "reference":""}, #ows:Reference or Schema to datatype
+               {"identifier":"nhn_river_id",
+                "abstract":"River segment ID in the Canadian NHN ID format",
+                "title":"River Reach ID",
+                "literal":True,
+                "datatype":"string",
+                "reference":""},
+             ]
+    outputs = [
+                {"identifier":"Status",
+                 "abstract":"Message for success or informative error message if there were problems performing the request",
+                 "datatype":"text/xml",
+                 "title":"Add Status",
+                 "literal":False},
+              ]
+    version = "1.0"
+
+    def __init__(self):
+        # Do nothing here
+        pass
+
+    def execute(self, gauge_ids, nhn_river_id):
+        # All wps processes are required to convert the str representation
+        # of their input parameters to the correct python type for execution
+        gauge_ids = gauge_ids.split(",") # Probably a list of strings
+
+		# Do django models here: remove
+		pass
+
+        return "Success!"

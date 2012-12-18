@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<wps:ProcessDescriptions xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsDescribeProcess_response.xsd" service="WPS" version="1.0.0" xml:lang="eng">
+    {% for process in processes %}
+    <ProcessDescription wps:processVersion="{{process.version}}" storeSupported="False" statusSupported="False">
+        <ows:Identifier>{{process.identifier}}</ows:Identifier>
+        <ows:Title>{{process.title}}</ows:Title>
+        <ows:Abstract>{{process.abstract}}</ows:Abstract>
+        <DataInputs>
+            {% for input in process.inputs %}
+            <Input minOccurs="1" maxOccurs="1">
+                <ows:Identifier>{{input.identifier}}</ows:Identifier>
+                <ows:Title>{{input.title}}</ows:Title>
+                <ows:Abstract>{{input.abstract}}</ows:Abstract>
+                {% if input.literal %}
+                <LiteralData>
+                    <ows:DataType ows:reference="{{input.reference}}">{{input.datatype}}</ows:DataType>
+                </LiteralData>
+                {% else %}
+                <ComplexInput>
+                    <Default>
+                        <Format>
+                            <ows:MimeType>{{input.datatype}}</ows:MimeType>
+                            <Schema>{{input.reference}}</Schema>
+                        </Format>
+                    </Default>
+                    <Supported>
+                        <Format>
+                            <ows:MimeType>{{input.datatype}}</ows:MimeType>
+                            <Schema>{{input.reference}}</Schema>
+                        </Format>
+                    </Supported>
+                </ComplexInput>
+                {% endif %}
+            </Input>
+            {% endfor %}
+        </DataInputs>
+        <ProcessOutputs>
+            {% for output in process.outputs %}
+            <Output>
+                <ows:Identifier>{{output.identifier}}</ows:Identifier>
+                <ows:Title>{{output.title}}</ows:Title>
+                <ows:Abstract>{{output.abstract}}</ows:Abstract>
+                {% if output.literal %}
+                <LiteralData>
+                    <ows:DataType ows:reference="{{output.reference}}">{{output.datatype}}</ows:DataType>
+                </LiteralData>
+                {% else %}
+                <ComplexOutput>
+                    <Default>
+                        <Format>
+                            <ows:MimeType>{{output.datatype}}</ows:MimeType>
+                            <Schema>{{output.reference}}</Schema>
+                        </Format>
+                    </Default>
+                    <Supported>
+                        <Format>
+                            <ows:MimeType>{{output.datatype}}</ows:MimeType>
+                            <Schema>{{output.reference}}</Schema>
+                        </Format>
+                    </Supported>
+                </ComplexOutput>
+                {% endif %}
+            </Output>
+            {% endfor %}
+        </ProcessOutputs>
+    </ProcessDescription>
+    {% endfor %}
+</wps:ProcessDescriptions>
+

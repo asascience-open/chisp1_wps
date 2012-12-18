@@ -25,6 +25,12 @@ class Server(models.Model):
     implementation_site     = models.CharField(max_length=1000, help_text="Web Address for This Implementation", blank=False)
 
 # Add other implementation specific classes here
-class RiverSegment(models.Model):
-	title = models.CharField(max_length=1000, help_text="NHN River Segment ID for both US and Canadian River Reaches", blank=False)
-	gauges_located_on_river = models.CharField(max_length=50000, help_text="Comma Separated List of Stream Gauge IDs", blank=True)
+class StreamGauge(models.Model):
+    river_segment_id = models.CharField(max_length=1000, help_text="NHN River Segment ID for both US and Canadian River Reaches", blank=False)
+    sos_endpoint = models.CharField(max_length=1000, help_text="SOS Endpoint for this Stream Gauge and ID", blank=True)
+    stream_gauge_id = models.CharField(max_length=1000, help_text="Stream gauge ID that corresponds to the station in the SOS endpoint", blank=False, primary_key=True)
+    stream_gauge_name = models.CharField(max_length=1000, help_text="Stream gauge name", blank=True)
+    stream_gauge_offerings = models.CharField(max_length=10000, help_text="Comma separated list of offerings for this station through SOS endpoint", blank=True)
+    stream_gauge_parameters = models.CharField(max_length=50000, help_text="Comma separated list of observedProperty parameters for this station through SOS endpoint", blank=True)
+    stream_gauge_x = models.DecimalField(help_text="Longitude or X coodinate", blank=True, max_digits=20, decimal_places=8)
+    stream_gauge_y = models.DecimalField(help_text="Latitude or Y coordinate", blank=True, max_digits=20, decimal_places=8)

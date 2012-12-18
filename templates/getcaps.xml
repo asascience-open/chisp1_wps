@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<wps:Capabilities service="WPS" version="1.0.0" xml:lang="eng" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsGetCapabilities_response.xsd" updateSequence="1">
+	<ows:ServiceIdentification>
+		<ows:Title>{{server.title}}</ows:Title>
+		<ows:Abstract>{{server.abstract}}</ows:Abstract>
+		<ows:Keywords>
+            {% for keyword in server_keywords %}
+			<ows:Keyword>{{keyword}}</ows:Keyword>
+            {% endfor %}
+		</ows:Keywords>
+		<ows:ServiceType>WPS</ows:ServiceType>
+		<ows:ServiceTypeVersion>1.0.0</ows:ServiceTypeVersion>
+		<ows:Fees>None</ows:Fees>
+		<ows:AccessConstraints>None</ows:AccessConstraints>
+	</ows:ServiceIdentification>
+	<ows:ServiceProvider>
+		<ows:ProviderName>{{server.contact_organization}}</ows:ProviderName>
+		<ows:ProviderSite xlink:href="{{server.contact_site}}"/>
+		<ows:ServiceContact>
+			<ows:IndividualName>{{server.contact_person}}</ows:IndividualName>
+			<ows:ContactInfo>
+				<ows:Phone>
+					<ows:Voice>{{server.contact_telephone}}</ows:Voice>
+				</ows:Phone>
+				<ows:Address>
+					<ows:DeliveryPoint>{{server.contact_street_address}}</ows:DeliveryPoint>
+					<ows:City>{{server.contact_city_address}}</ows:City>
+					<ows:PostalCode>{{server.contact_code_address}}</ows:PostalCode>
+					<ows:Country>{{server.contact_country_address}}</ows:Country>
+					<ows:ElectronicMailAddress>{{server.contact_email}}</ows:ElectronicMailAddress>
+				</ows:Address>
+			</ows:ContactInfo>
+		</ows:ServiceContact>
+	</ows:ServiceProvider>
+	<ows:OperationsMetadata>
+		<ows:Operation name="GetCapabilities">
+			<ows:DCP>
+				<ows:HTTP>
+					<ows:Get xlink:href="{{server.implementation_site}}/wps/?"/>
+				</ows:HTTP>
+			</ows:DCP>
+		</ows:Operation>
+		<ows:Operation name="DescribeProcess">
+			<ows:DCP>
+				<ows:HTTP>
+					<ows:Get xlink:href="{{server.implementation_site}}/wps/?"/>
+				</ows:HTTP>
+			</ows:DCP>
+		</ows:Operation>
+		<ows:Operation name="Execute">
+			<ows:DCP>
+				<ows:HTTP>
+					<ows:Get xlink:href="{{server.implementation_site}}/wps/?"/>
+				</ows:HTTP>
+			</ows:DCP>
+		</ows:Operation>
+	</ows:OperationsMetadata>
+	<wps:ProcessOfferings>
+        {% for process in processes %}
+		<wps:Process wps:processVersion="{{process.version}}">
+			<ows:Identifier>{{process.identifier}}</ows:Identifier>
+			<ows:Title>{{process.title}}</ows:Title>
+			<ows:Abstract>{{process.abstract}}</ows:Abstract>
+		</wps:Process>
+        {% endfor %}
+	</wps:ProcessOfferings>
+	<wps:Languages>
+		<wps:Default>
+			<ows:Language>eng</ows:Language>
+		</wps:Default>
+		<wps:Supported>
+			<ows:Language>eng</ows:Language>
+		</wps:Supported>
+	</wps:Languages>
+</wps:Capabilities>
+

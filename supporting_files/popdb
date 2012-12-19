@@ -1,0 +1,25 @@
+#!python
+
+import urllib2
+import urllib
+
+f = open('CAN_gauge_river_relationships.csv')
+csv_lines = f.readlines()
+for i, line in enumerate(csv_lines):
+    if i > 1:
+        line = line.split('","')
+        id = line[1].replace('"', '')
+        river = line[7].replace('"', '')
+        lat = line[6].replace('"', '')
+        lon = line[5].replace('"', '')
+        params = urllib.urlencode({"request":"execute",
+                                    "identifier":"add_gauge_to_stream",
+                                    "version":"1.0.0",
+                                    "DataInputs":"nhn_river_id=%s;gauge_ids=%s;latitude=%s;longitude=%s" % (river, id, lat, lon),
+                                  })
+        url = "http://127.0.0.1:8000/wps/?" + params
+        url = url.replace(";", "%3B")
+        print '\n' + url + '\n'
+        req = urllib2.Request(url)
+        req = urllib2.urlopen(req)
+        print req.read()

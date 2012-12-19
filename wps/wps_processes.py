@@ -156,10 +156,13 @@ class find_upstream_gauges(process):
         upstream_segments = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
         upstream_gauge_ids = []
         upstream_segment_ids = []
+        #print type(list(StreamGauge.objects.all())[0].river_segment_id)
         for i in range(1,len(upstream_segments)):
             upstream_segment_ids.append(upstream_segments[i].getchildren()[0].getchildren()[0].text)
-            for streamgauge in StreamGauge.objects.filter(river_segment_id=upstream_segments[i].getchildren()[0].getchildren()[0].text):
-                print streamgauge
+            #print upstream_segment_ids[i-1]
+            filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segment_ids[i-1])
+            #print list(filtered_sg)
+            for streamgauge in list(filtered_sg):
                 upstream_gauge_ids.append(streamgauge.stream_gauge_id)
         return 'gauge ids: \n' + str(upstream_gauge_ids) + '\n' + str(upstream_segment_ids)
 

@@ -28,7 +28,7 @@ class Server(models.Model):
 class StreamGauge(models.Model):
     river_segment_id = models.CharField(max_length=1000, help_text="NHN River Segment ID for both US and Canadian River Reaches", blank=False)
     sos_endpoint = models.CharField(max_length=1000, help_text="SOS Endpoint for this Stream Gauge and ID", blank=True)
-    stream_gauge_id = models.CharField(max_length=1000, help_text="Stream gauge ID that corresponds to the station in the SOS endpoint", blank=False, primary_key=True)
+    stream_gauge_id = models.CharField(max_length=1000, help_text="Stream gauge ID that corresponds to the station in the SOS endpoint", blank=False, unique=True)
     stream_gauge_name = models.CharField(max_length=1000, help_text="Stream gauge name", blank=True)
     stream_gauge_offerings = models.CharField(max_length=10000, help_text="Comma separated list of offerings for this station through SOS endpoint", blank=True)
     stream_gauge_parameters = models.CharField(max_length=50000, help_text="Comma separated list of observedProperty parameters for this station through SOS endpoint", blank=True)

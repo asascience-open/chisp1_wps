@@ -2,6 +2,8 @@ import os, sys, urllib2
 from process import process
 from wps.models import StreamGauge
 import xml.etree.ElementTree as et
+from django.template import Context, loader
+from django.shortcuts import render_to_response
 
 class add_gauge_to_stream(process):
     # These fields are required by the wps descriverprocess and getcapabilities
@@ -22,6 +24,18 @@ class add_gauge_to_stream(process):
                 "literal":True,
                 "datatype":"string",
                 "reference":""},
+                {"identifier":"longitude",
+                "abstract":"Longitude in Degrees East",
+                "title":"Longitude",
+                "literal":True,
+                "datatype":"float",
+                "reference":""},
+                {"identifier":"latitude",
+                "abstract":"Latitude in Degrees North",
+                "title":"Latitude",
+                "literal":True,
+                "datatype":"float",
+                "reference":""},
              ]
     outputs = [
                 {"identifier":"Status",
@@ -36,15 +50,23 @@ class add_gauge_to_stream(process):
         # Do nothing here
         pass
 
-    def execute(self, gauge_ids, nhn_river_id):
+    def execute(self, gauge_ids, nhn_river_id, longitude, latitude, **kwargs):
         # All wps processes are required to convert the str representation
         # of their input parameters to the correct python type for execution
-        gauge_ids = gauge_ids.split(",") # Probably a list of strings
-
-        # Do django models here: Add
-        pass
-
-        return "Success!"
+        try:
+            gauge_ids = gauge_ids.split(",") # Probably a list of strings
+            # Do django models here: Add
+            for id in gauge_ids:
+                if len(StreamGauge.objects.filter(stream_gauge_id=id)) != 0:
+                    StreamGauge.delete(StreamGauge.objects.filter(stream_gauge_id=id)[0])
+                sg_entry = StreamGauge(stream_gauge_id=id,
+                                       river_segment_id=nhn_river_id,
+                                       stream_gauge_x=longitude,
+                                       stream_gauge_y=latitude)
+                sg_entry.save()
+            return "Success!"
+        except Exception:
+            return 'Failure!'
 
 class remove_gauge_from_stream(process):
     # These fields are required by the wps descriverprocess and getcapabilities
@@ -79,15 +101,17 @@ class remove_gauge_from_stream(process):
         # Do nothing here
         pass
 
-    def execute(self, gauge_ids, nhn_river_id):
+    def execute(self, gauge_ids, nhn_river_id, **kwargs):
         # All wps processes are required to convert the str representation
         # of their input parameters to the correct python type for execution
-        gauge_ids = gauge_ids.split(",") # Probably a list of strings
-
-        # Do django models here: remove
-        pass
-
-        return "Success!"
+        try:
+            gauge_ids = gauge_ids.split(",") # Probably a list of strings
+            # Do django models here: remove
+            for id in gauge_ids:
+                StreamGauge.delete(StreamGauge.objects.filter(stream_gauge_id=id)[0])
+            return "Success!"
+        except Exception:
+            return "Failure!"
 
 class find_upstream_gauges(process):
     title = "Find and return (across CAN/US border) upstream river stream gauge ID's"
@@ -119,7 +143,7 @@ class find_upstream_gauges(process):
         # Do nothing here
         pass
 
-    def execute(self, latitude, longitude):
+    def execute(self, latitude, longitude, **kwargs):
         # All wps processes are required to convert the str representation
         # of their input parameters to the correct python type for execution
         # http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=49.22;longitude=-101.49
@@ -130,11 +154,12 @@ class find_upstream_gauges(process):
         upstream_output = url.read()
         upstream_output = et.fromstring(upstream_output)
         upstream_segments = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
-##        upstream_segment_ids = []
         upstream_gauge_ids = []
+        upstream_segment_ids = []
         for i in range(1,len(upstream_segments)):
-##            upstream_segment_ids.append(upstream_segments[i].getchildren()[0].getchildren()[0].text)
+            upstream_segment_ids.append(upstream_segments[i].getchildren()[0].getchildren()[0].text)
             for streamgauge in StreamGauge.objects.filter(river_segment_id=upstream_segments[i].getchildren()[0].getchildren()[0].text):
+                print streamgauge
                 upstream_gauge_ids.append(streamgauge.stream_gauge_id)
-        return "gauge ids: " + str(upstream_gauge_ids)
+        return 'gauge ids: \n' + str(upstream_gauge_ids) + '\n' + str(upstream_segment_ids)
 

@@ -22,7 +22,7 @@ class WpsTests(TestCase):
         """
 ##        response = views.execute100("test_process", "value1=1;value2=2;value3=1").content
 ##        assert response == "<float>2.0</float>"
-        pass
+        assert True==False
 
     def test_getcapabilities100(self):
         """

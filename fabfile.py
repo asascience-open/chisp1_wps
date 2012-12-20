@@ -17,8 +17,9 @@ def test():
 
 def deploy():
     clean()
-    prepare_deploy()
     test()
+    prepare_deploy()
+
 
 def clean():
     local('rm -rf *.pyc')

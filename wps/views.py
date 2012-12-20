@@ -170,7 +170,6 @@ def getCapabilities100():
                 context["processes"].append(process)
         except:
             pass
-    print list(Server.objects.all()), list(Server.objects.values())
     context["server"] = Server.objects.values()[0]
     context["server_keywords"] = Server.objects.get().keywords.split(",")
     f = open(os.path.join(template_dir, 'getcaps.xml'))

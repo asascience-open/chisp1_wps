@@ -9,6 +9,7 @@ urlpatterns = patterns('',
     # url(r'^$', 'sciwps.views.home', name='home'),
     # url(r'^sciwps/', include('sciwps.foo.urls')),
     url(r'^wps/$', 'wps.views.wps'),
+    url(r'^nlcs/$', 'nlcs.views.wps'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

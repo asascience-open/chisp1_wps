@@ -10,10 +10,13 @@ def prepare_deploy():
         result = local('git push origin master')
 
 def test():
-    with settings(warn_only=True):
-        result = local('python manage.py test')
-    if result.failed and not confirm("Tests Failed...Continue?"):
-        abort("Aborting...")
+    modules = ['wps', 'nlcs']
+    for module in modules:
+        with settings(warn_only=True):
+            result = local('python manage.py test %s' % module)
+        if result.failed and not confirm("Tests Failed...Continue?"):
+            abort("Aborting...")
+
 
 def deploy():
     clean()

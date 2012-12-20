@@ -7,9 +7,10 @@ Replace this with more appropriate tests for your application.
 
 from django.test import TestCase
 import views
+import urllib2
 
 class WpsTests(TestCase):
-    def test_describeprocess100(self):
+    def test_describeProcess100(self):
         """
         Test of wps version 1.0.0 describe process function
         """
@@ -22,10 +23,23 @@ class WpsTests(TestCase):
         """
 ##        response = views.execute100("test_process", "value1=1;value2=2;value3=1").content
 ##        assert response == "<float>2.0</float>"
-        assert True==False
+        pass
 
-    def test_getcapabilities100(self):
+    def test_getCapabilities100(self):
         """
         Test of wps version 1.0.0 getcapabilities function
         """
-        pass
+        response = views.getCapabilities100().content
+        assert response
+
+    def test_find_upstream_gauges(self):
+        response = views.execute100("find_upstream_gauges", "latitude=49.49361038;longitude=-103.66221619").content
+        assert response
+
+    def test_nhn_segment_wps(self):
+        latitude = "49.49361038"
+        longitude= "-103.66221619"
+        upstream_request = "http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
+        url = urllib2.urlopen(upstream_request, timeout=120)
+        upstream_output = url.read()
+

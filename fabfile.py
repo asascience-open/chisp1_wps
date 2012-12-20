@@ -16,7 +16,14 @@ def test():
         abort("Aborting...")
 
 def deploy():
-    test()
+    clean()
     prepare_deploy()
+    test()
+
+def clean():
+    local('rm -rf *.pyc')
+    local('rm -rf *.py~')
+    local('rm -rf *.xml~')
+    local('rm -rf *.csv~')
 
 

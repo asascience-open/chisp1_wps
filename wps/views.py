@@ -151,7 +151,10 @@ def execute100(identifier, inputs):
     process = constructor()
     out = process.execute(**inputdict)
     response = out # Render response in wps process
-    return HttpResponse(response)
+    if type(response) == HttpResponse:
+        return response
+    else:
+        return HttpResponse(response)
 
 def getCapabilities100():
     processes = dir(wps_processes)

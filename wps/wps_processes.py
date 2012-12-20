@@ -1,9 +1,11 @@
-import os, sys, urllib2
+import os, sys, urllib2, datetime
 from process import process
 from wps.models import StreamGauge
 import xml.etree.ElementTree as et
-from django.template import Context, loader
-from django.shortcuts import render_to_response
+from django.template import Context, Template
+from django.http import HttpResponse
+
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
 
 class add_gauge_to_stream(process):
     # These fields are required by the wps descriverprocess and getcapabilities
@@ -114,8 +116,8 @@ class remove_gauge_from_stream(process):
             return "Failure!"
 
 class find_upstream_gauges(process):
-    title = "Find and return (across CAN/US border) upstream river stream gauge ID's"
-    abstract = "WPS for CHISP1 Scenario #1 that uses the http://ows.geobase.ca/wps/geobase?Service=WPS&Request=getcapabilities WPS service to determine upstream river segments and then determine the associated stream guage IDs."
+    title = "Find and return (across CAN/US border) upstream river stream gauge IDs"
+    abstract = "WPS for CHISP1 Scenario #1 that uses the http://ows.geobase.ca/wps/geobase?Service=WPS NHNUpstreamID WPS service to determine upstream river segments and then determine the associated stream guage IDs."
     inputs = [
                {"identifier":"latitude",
                 "abstract":"Latitude of point of interest in Degrees North", #abstract for parameter
@@ -153,16 +155,30 @@ class find_upstream_gauges(process):
         url = urllib2.urlopen(upstream_request, timeout=120)
         upstream_output = url.read()
         upstream_output = et.fromstring(upstream_output)
-        upstream_segments = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
-        upstream_gauge_ids = []
-        upstream_segment_ids = []
+        upstream_segs = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
+        upstream_segments = []
         #print type(list(StreamGauge.objects.all())[0].river_segment_id)
-        for i in range(1,len(upstream_segments)):
-            upstream_segment_ids.append(upstream_segments[i].getchildren()[0].getchildren()[0].text)
-            #print upstream_segment_ids[i-1]
-            filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segment_ids[i-1])
-            #print list(filtered_sg)
+        for i in range(1,len(upstream_segs)):
+            upstream_segments.append({"id":upstream_segs[i].getchildren()[0].getchildren()[0].text,
+                                      "gauge_ids":[],
+                                      "has_gauge":False})
+            filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segments[-1]["id"])
             for streamgauge in list(filtered_sg):
-                upstream_gauge_ids.append(streamgauge.stream_gauge_id)
-        return 'gauge ids: \n' + str(upstream_gauge_ids) + '\n' + str(upstream_segment_ids)
+                upstream_segments[-1]["gauge_ids"].append(streamgauge.stream_gauge_id)
+                upstream_segments[-1]["has_gauge"] = True
+        f = open(os.path.join(template_dir, 'gauge_id.xml'))
+        text = f.read()
+        f.close()
+        status = True
+        context = {"segments":upstream_segments,
+                   "status":status,
+                   "title":self.title,
+                   "identifier":"find_upstream_gauges",
+                   "abstract":self.abstract,
+                   "version":self.version,
+                   "output":self.outputs[0],
+                   "time":datetime.datetime.now().__str__(),
+                  }
+        context_dict = Context(context)
+        return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
 

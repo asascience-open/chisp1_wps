@@ -24,12 +24,12 @@ def deploy():
     clean()
     test()
     prepare_deploy()
-    with run('source venvs/chisp/bin/activate'):
-        with cd('chisp1_wps/'):
-            with settings(warn_only=True):
-                run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
-            run('git pull')
-            run('python manage.py run_gunicorn &')
+    #with run('source venvs/chisp/bin/activate'):
+    with cd('chisp1_wps/'):
+        with settings(warn_only=True):
+            run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
+        run('git pull')
+        #run('python manage.py run_gunicorn &')
 
 
 def clean():

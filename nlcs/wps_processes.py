@@ -4,10 +4,19 @@ from wps.models import StreamGauge
 import xml.etree.ElementTree as et
 from django.template import Context, Template
 from django.http import HttpResponse
+from rpy import r
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
 
-class XXXXX(process):
+class calc_nutrient_load(process):
+    """
+        For EGRET:WRTDS nutrient load calculation service will need:
+        Inputs:
+            Date (day) of interest
+            Record of water quality measurements
+            Record of stream flow measurements
+            Which Lake
+    """
     title = "Find and return (across CAN/US border) upstream river stream gauge IDs"
     abstract = "WPS for CHISP1 Scenario #1 that uses the http://ows.geobase.ca/wps/geobase?Service=WPS NHNUpstreamID WPS service to determine upstream river segments and then determine the associated stream guage IDs."
     inputs = [
@@ -25,10 +34,10 @@ class XXXXX(process):
                 "reference":""},
              ]
     outputs = [
-                {"identifier":"gauge_ids",
-                 "abstract":"List of gauge_ids that coorespond to the upstream river segments from the point supplied",
-                 "datatype":"text/xml",
-                 "title":"Matching Gauge IDs",
+                {"identifier":"nlcs_output",
+                 "abstract":"The various results and output from the USGS EGRET:WRTDS nutrient load model for the selected Great Lake",
+                 "datatype":"application/json",
+                 "title":"Great Lakes Nutrient Load Calculation Output",
                  "literal":False},
               ]
     version = "1.0"
@@ -38,37 +47,61 @@ class XXXXX(process):
         pass
 
     def execute(self, latitude, longitude, **kwargs):
-        # All wps processes are required to convert the str representation
-        # of their input parameters to the correct python type for execution
-        # http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=49.22;longitude=-101.49
-        #latitude = float(latitude)
-        #longitude = float(longitude)
-        upstream_request = "http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
-        url = urllib2.urlopen(upstream_request, timeout=120)
-        upstream_output = url.read()
-        upstream_output = et.fromstring(upstream_output)
-        upstream_segs = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
-        upstream_segments = []
-        #print type(list(StreamGauge.objects.all())[0].river_segment_id)
-        for i in range(1,len(upstream_segs)):
-            upstream_segments.append({"id":upstream_segs[i].getchildren()[0].getchildren()[0].text,
-                                      "gauge_ids":[],
-                                      "has_gauge":False})
-            filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segments[-1]["id"])
-            for streamgauge in list(filtered_sg):
-                upstream_segments[-1]["gauge_ids"].append(streamgauge.stream_gauge_id)
-                upstream_segments[-1]["has_gauge"] = True
-        f = open(os.path.join(template_dir, 'gauge_id.xml'))
+        # Import the required R modules:
+        #r.library("zoo") #should happen automatically
+        #r.library("survival") #should happen automatically
+        #r.library("plyr") #should happen automatically
+        r.library("EGRET") #https://github.com/USGS-CIDA/WRTDS/wiki
+        r.library("dataRetrieval") # for the internal R data connector to get data
+
+        ##These following 2 commands rely on dataRetrieval which has an R version
+        ##dependency. The project requires us to hit SOS services for this data
+        ##ultimately.
+        # Get water quality data:(station, parameter, startdate, enddate)
+        wq_data_sample = r.getSampleData("01491000", "00631", "1979-09-01", "2011-09-30")
+        # Get volume flow data:(station, "00060", startdate, enddate)
+        q_data_daily = r.getDVData("01491000", "00060", "1979-09-01", "2011-09-30")
+
+        info = r.getMetaData("01491000", "00631", interactive=False)
+
+        #wq_data_sample = r.mergeReport(q_data_daily, wq_data_sample, interactive=False) # data retrieval
+        r.assign("INFO", info)
+        r.assign("Sample", wq_data_sample)
+        r.assign("Daily", q_data_daily)
+        r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
+        #r.multiPlotDataOverview(wq_data_sample, q_data_daily, info, qUnit=1)
+        r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
+
+        # Compute annual results
+        #annual_results = r.setupYears(paLong=12, paStart=1, localDaily=q_data_daily) # (paLong=12, paStart=1)
+        r('annual_results = setupYears(paLong=12, paStart=1, localDaily=Daily)')
+
+        r.plotConcHist(1980, 2012)
+        r.plotFluxHist(1980, 2012, fluxUnit=8)
+        r.tableResults(qUnit=1, fluxUnit=5)
+        r.tableChange(fluxUnit=5, yearPoints=c(1980, 1995, 2011))
+        r.plotFluxTimeDaily(1998, 2005)
+        r.plotFluxTimeDaily(2012, 2011.75)
+        r.fluxBiasMulti(qUni=1, fluxUnit=4)
+        # Mesh output of time, q, and concentration
+        r.plotContours(1980, 2012, 5, 1000, qUnit=1, contourLevels=seq(0,2.5, 0.25))
+        # Difference between years
+        r.plotDiffContours(1985, 2011, 5, 1000, qUnit=1, maxDiff=1.0)
+
+
+
+
+        f = open(os.path.join(template_dir, 'nlcs.xml'))
         text = f.read()
         f.close()
         status = True
-        context = {"segments":upstream_segments,
+        context = {#"segments":upstream_segments,
                    "status":status,
                    "title":self.title,
-                   "identifier":"find_upstream_gauges",
+                   "identifier":"calc_nutrient_load",
                    "abstract":self.abstract,
                    "version":self.version,
-                   "output":self.outputs[0],
+                   "outputs":self.outputs,
                    "time":datetime.datetime.now().__str__(),
                   }
         context_dict = Context(context)

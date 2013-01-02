@@ -6,7 +6,7 @@
         <ows:Abstract>{{abstract}}</ows:Abstract>
     </wps:Process>
     <wps:Status creationTime="{{time}}">
-      Process ({{identifier}}) is {{progress}}
+      Process ({{identifier}}) has {{progress}}
     </wps:Status>
     <wps:ProcessOutputs>
         <wps:Output>
@@ -15,12 +15,13 @@
             <wps:Data>
                 <wps:ComplexData mimeType="{{output.datatype}}">
                     <!--Start Dummy Data-->
-                    <Rivers>
-                      <River name="My Test Tributary" lat=41 lon=74 load=300 percent_contribution=60 />
-                    </Rivers>
-                    <Lakes>
-                      <Lake name="Ontario" load=500 />
-                    </Lakes>
+                    {% if done %}
+                    <Lake name="Ontario" load="500">
+                      <Rivers>
+                        <River name="My Test Tributary" lat="41" lon="74" load="300" contribution="60%" />
+                      </Rivers>
+                    </Lake>
+                    {% endif %}
                     <!--End Dummy Data-->
                 </wps:ComplexData>
       </wps:Data>

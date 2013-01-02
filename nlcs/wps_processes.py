@@ -1,6 +1,6 @@
 import os, sys, urllib2, datetime, multiprocessing, uuid
 from process import process
-from wps.models import StreamGauge
+from wps.models import Server
 import xml.etree.ElementTree as et
 from django.template import Context, Template
 from django.http import HttpResponse
@@ -8,6 +8,7 @@ import rpy2.robjects as robjects
 
 r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
+outputs_url = Server.objects.all()[0].implementation_site +"/outputs/"
 
 class calc_nutrient_load(process):
     """
@@ -75,7 +76,7 @@ class calc_nutrient_load(process):
             r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
 
             #r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
-            """
+
             # Compute annual results
             r('modelEstimation()')
             #annual_results = r.setupYears(paLong=12, paStart=1, localDaily=q_data_daily) # (paLong=12, paStart=1)
@@ -87,20 +88,21 @@ class calc_nutrient_load(process):
             r('tableChange(fluxUnit=5, yearPoints=c(1980, 1995, 2011))')
             r('plotFluxTimeDaily(1998, 2005)')
 
-            r('pdf("fluxtimedaily.pdf")')
+            r('pdf("%s_fluxtimedaily.pdf")' % os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)))
             r('plotFluxTimeDaily(2011, 2012)')
             r('dev.off()')
 
             #r.fluxBiasMulti(qUni=1, fluxUnit=4)
             # Mesh output of time, q, and concentration
-            r('pdf("plotcontours.pdf")')
+            r('pdf("%s_plotcontours.pdf")' % os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)))
             r('plotContours(1980, 2012, 5, 1000, qUnit=1, contourLevels=seq(0,2.5, 0.25))')
             r('dev.off()')
 
             # Difference between years
             r('plotDiffContours(1985, 2011, 5, 1000, qUnit=1, maxDiff=1.0)')
-            """
-            context["progress"] = "Succeeded"
+
+            context["progress"] = "Succeeded at " + datetime.datetime.now().__str__()
+            context["done"] = True
             f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")
             f.write(Template(template).render(context))
             f.close()
@@ -110,6 +112,7 @@ class calc_nutrient_load(process):
         f.close()
         status = True
         progress = "Started Processing"
+        done = False
         status_location = str(uuid.uuid4()) + ".xml"
         context = {#"segments":upstream_segments,
                    "status":status,
@@ -120,7 +123,8 @@ class calc_nutrient_load(process):
                    "output":self.outputs[0],
                    "time":datetime.datetime.now().__str__(),
                    "progress":progress,
-                   "status_location":status_location,
+                   "status_location":outputs_url+status_location,
+                   "done":done,
                   }
         context_dict = Context(context)
         f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")

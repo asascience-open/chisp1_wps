@@ -12,6 +12,7 @@ urlpatterns = patterns('',
     url(r'^wps$', 'wps.views.wps'),
     url(r'^nlcs/$', 'nlcs.views.wps'),
     url(r'^nlcs$', 'nlcs.views.wps'),
+    url(r'^outputs/(?P<filepath>.*)', 'nlcs.views.outputs'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

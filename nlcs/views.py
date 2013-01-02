@@ -177,3 +177,8 @@ def getCapabilities100():
     f.close()
     context_dict = Context(context)
     return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
+
+def outputs(request, filepath):
+    f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", filepath)))
+    text = f.read()
+    return HttpResponse(text, content_type="text/xml")

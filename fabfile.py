@@ -7,9 +7,12 @@ env.hosts = ["chisp@192.168.250.103"] # local asa address
 def prepare_deploy():
     with settings(warn_only=True):
         result = local('git commit -a')
+        result = local('git pull origin master')
+        if result.failed and not confirm("Failed Pulling New Updates from Git Repository...Continue?"):
+                abort("Aborting...")
         result = local('git push origin master')
-    if result.failed and not confirm("Failed Pusing to Git Repository...Continue?"):
-            abort("Aborting...")
+        if result.failed and not confirm("Failed Pusing Changes to Git Repository...Continue?"):
+                abort("Aborting...")
 
 def test():
     modules = ['wps',

@@ -11,7 +11,7 @@ def prepare_deploy():
 
 def test():
     modules = ['wps',
-               #'nlcs',
+               'nlcs',
               ]
     for module in modules:
         with settings(warn_only=True):

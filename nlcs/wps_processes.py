@@ -70,7 +70,7 @@ class calc_nutrient_load(process):
         r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
         #r.multiPlotDataOverview(wq_data_sample, q_data_daily, info, qUnit=1)
         r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
-
+        """
         # Compute annual results
         r('modelEstimation()')
         #annual_results = r.setupYears(paLong=12, paStart=1, localDaily=q_data_daily) # (paLong=12, paStart=1)
@@ -82,17 +82,19 @@ class calc_nutrient_load(process):
         r('tableChange(fluxUnit=5, yearPoints=c(1980, 1995, 2011))')
         r('plotFluxTimeDaily(1998, 2005)')
 
-        r('png("fluxtimedaily.png")')
+        r('pdf("fluxtimedaily.pdf")')
         r('plotFluxTimeDaily(2012, 2011.75)')
         r('dev.off()')
 
         #r.fluxBiasMulti(qUni=1, fluxUnit=4)
         # Mesh output of time, q, and concentration
-        r('png("fluxtimedaily.png")')
+        r('pdf("plotcontours.pdf")')
         r('plotContours(1980, 2012, 5, 1000, qUnit=1, contourLevels=seq(0,2.5, 0.25))')
+        r('dev.off()')
+
         # Difference between years
         r('plotDiffContours(1985, 2011, 5, 1000, qUnit=1, maxDiff=1.0)')
-
+        """
         f = open(os.path.join(template_dir, 'nlcs.xml'))
         text = f.read()
         f.close()

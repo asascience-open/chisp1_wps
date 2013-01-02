@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wps:ExecuteResponse xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" service="WPS" version="1.0.0">
+  <wps:Process processVersion="{{version}}">
+        <ows:Identifier>{{identifier}}</ows:Identifier>
+        <ows:Title>{{title}}</ows:Title>
+        <ows:Abstract>{{abstract}}</ows:Abstract>
+    </wps:Process>
+    <wps:Status creationTime="{{time}}">{% if status %}
+      Process ({{identifier}}) Succeeded{% else %}
+      Process ({{identifier}}) Failed{% endif %}
+    </wps:Status>
+    <wps:ProcessOutputs>
+        <wps:Output>
+            <ows:Identifier>{{output.identifier}}</ows:Identifier>
+            <ows:Title>{{output.title}}</ows:Title>
+            <wps:Data>
+                <wps:ComplexData mimeType="{{output.datatype}}">
+                    <!---->
+                </wps:ComplexData>
+      </wps:Data>
+    </wps:Output>
+  </wps:ProcessOutputs>
+</wps:ExecuteResponse>

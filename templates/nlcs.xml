@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<wps:ExecuteResponse xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" service="WPS" version="1.0.0">
+<wps:ExecuteResponse xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" service="WPS" version="1.0.0" statusLocation="{{status_location}}">
   <wps:Process processVersion="{{version}}">
         <ows:Identifier>{{identifier}}</ows:Identifier>
         <ows:Title>{{title}}</ows:Title>
         <ows:Abstract>{{abstract}}</ows:Abstract>
     </wps:Process>
-    <wps:Status creationTime="{{time}}">{% if status %}
-      Process ({{identifier}}) Succeeded{% else %}
-      Process ({{identifier}}) Failed{% endif %}
+    <wps:Status creationTime="{{time}}">
+      Process ({{identifier}}) is {{progress}}
     </wps:Status>
     <wps:ProcessOutputs>
         <wps:Output>
@@ -15,7 +14,14 @@
             <ows:Title>{{output.title}}</ows:Title>
             <wps:Data>
                 <wps:ComplexData mimeType="{{output.datatype}}">
-                    <!---->
+                    <!--Start Dummy Data-->
+                    <Rivers>
+                      <River name="My Test Tributary" lat=41 lon=74 load=300 percent_contribution=60 />
+                    </Rivers>
+                    <Lakes>
+                      <Lake name="Ontario" load=500 />
+                    </Lakes>
+                    <!--End Dummy Data-->
                 </wps:ComplexData>
       </wps:Data>
     </wps:Output>

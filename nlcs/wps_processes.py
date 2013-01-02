@@ -1,4 +1,4 @@
-import os, sys, urllib2, datetime
+import os, sys, urllib2, datetime, multiprocessing, uuid
 from process import process
 from wps.models import StreamGauge
 import xml.etree.ElementTree as et
@@ -19,20 +19,26 @@ class calc_nutrient_load(process):
                 http://wqp-sos.herokuapp.com/sos?service=SOS&request=GetObservation&procedure=21IOWA-10070005&offering=21IOWA-10070005&observedProperty=Organic%20carbon
             Which Lake
     """
-    title = "Find and return (across CAN/US border) upstream river stream gauge IDs"
-    abstract = "WPS for CHISP1 Scenario #1 that uses the http://ows.geobase.ca/wps/geobase?Service=WPS NHNUpstreamID WPS service to determine upstream river segments and then determine the associated stream guage IDs."
+    title = "Nutrient load calculation service for the Great Lakes"
+    abstract = "WPS for CHISP1 Scenario #2 that calculates the nutrient loading of the Great Lakes by each tributary"
     inputs = [
-               {"identifier":"latitude",
-                "abstract":"Latitude of point of interest in Degrees North", #abstract for parameter
-                "title":"Gauge IDs", #title of parameter
+               {"identifier":"lake",
+                "abstract":"Lake to calculate nutrient loads for", #abstract for parameter
+                "title":"Lake Name", #title of parameter
                 "literal":True, #is literaldata, otherwise complex
-                "datatype":"float", #datatype
+                "datatype":"string", #datatype
                 "reference":""}, #ows:Reference or Schema to datatype
-               {"identifier":"longitude",
-                "abstract":"Longitude of point of interest in Degrees East",
-                "title":"Longitude of point of interest",
+               {"identifier":"date",
+                "abstract":"ISO representation of the date of interest",
+                "title":"Date of Interest",
                 "literal":True,
-                "datatype":"float",
+                "datatype":"string",
+                "reference":""},
+                {"identifier":"nutrient",
+                "abstract":"The nutrient of interest",
+                "title":"Nutrient Name",
+                "literal":True,
+                "datatype":"string",
                 "reference":""},
              ]
     outputs = [
@@ -48,64 +54,89 @@ class calc_nutrient_load(process):
         # Do nothing here
         pass
 
-    def execute(self, latitude, longitude, **kwargs):
-        # Import the required R modules:
-        #r.library("zoo") #should happen automatically
-        #r.library("survival") #should happen automatically
-        #r.library("plyr") #should happen automatically
-        robjects.packages.importr("EGRET") #https://github.com/USGS-CIDA/WRTDS/wiki
-        robjects.packages.importr("dataRetrieval") # for the internal R data connector to get data
+    def execute(self, lake, date, nutrient, **kwargs):
+        def longterm(lake, date, nutrient, status_location, template, context, **kwargs):
+            # Import the required R modules:
+            #r.library("zoo") #should happen automatically
+            #r.library("survival") #should happen automatically
+            #r.library("plyr") #should happen automatically
+            robjects.packages.importr("EGRET") #https://github.com/USGS-CIDA/WRTDS/wiki
+            robjects.packages.importr("dataRetrieval") # for the internal R data connector to get data
 
-        ##These following 2 commands rely on dataRetrieval which has an R version
-        ##dependency. The project requires us to hit SOS services for this data
-        ##ultimately.
-        # Get water quality data:(station, parameter, startdate, enddate)
-        r('Sample = getSampleData("01491000", "00631", "1979-09-01", "2011-09-30")')
-        # Get volume flow data:(station, "00060", startdate, enddate)
-        r('Daily = getDVData("01491000", "00060", "1979-09-01", "2011-09-30")')
+            ##These following 2 commands rely on dataRetrieval which has an R version
+            ##dependency. The project requires us to hit SOS services for this data
+            ##ultimately.
+            # Get water quality data:(station, parameter, startdate, enddate)
+            r('Sample = getSampleData("01491000", "00631", "1979-09-01", "2011-09-30")')
+            # Get volume flow data:(station, "00060", startdate, enddate)
+            r('Daily = getDVData("01491000", "00060", "1979-09-01", "2011-09-30")')
 
-        r('INFO = getMetaData("01491000", "00631", interactive=FALSE)')
-        r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
+            r('INFO = getMetaData("01491000", "00631", interactive=FALSE)')
+            r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
 
-        #r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
-        """
-        # Compute annual results
-        r('modelEstimation()')
-        #annual_results = r.setupYears(paLong=12, paStart=1, localDaily=q_data_daily) # (paLong=12, paStart=1)
-        r('AnnualResults = setupYears(paLong=12, paStart=1, localDaily=Daily)')
+            #r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
+            """
+            # Compute annual results
+            r('modelEstimation()')
+            #annual_results = r.setupYears(paLong=12, paStart=1, localDaily=q_data_daily) # (paLong=12, paStart=1)
+            r('AnnualResults = setupYears(paLong=12, paStart=1, localDaily=Daily)')
 
-        r('plotConcHist(1980, 2012)')
-        r('plotFluxHist(1980, 2012, fluxUnit=8)')
-        r('tableResults(qUnit=1, fluxUnit=5)')
-        r('tableChange(fluxUnit=5, yearPoints=c(1980, 1995, 2011))')
-        r('plotFluxTimeDaily(1998, 2005)')
+            r('plotConcHist(1980, 2012)')
+            r('plotFluxHist(1980, 2012, fluxUnit=8)')
+            r('tableResults(qUnit=1, fluxUnit=5)')
+            r('tableChange(fluxUnit=5, yearPoints=c(1980, 1995, 2011))')
+            r('plotFluxTimeDaily(1998, 2005)')
 
-        r('pdf("fluxtimedaily.pdf")')
-        r('plotFluxTimeDaily(2012, 2011.75)')
-        r('dev.off()')
+            r('pdf("fluxtimedaily.pdf")')
+            r('plotFluxTimeDaily(2011, 2012)')
+            r('dev.off()')
 
-        #r.fluxBiasMulti(qUni=1, fluxUnit=4)
-        # Mesh output of time, q, and concentration
-        r('pdf("plotcontours.pdf")')
-        r('plotContours(1980, 2012, 5, 1000, qUnit=1, contourLevels=seq(0,2.5, 0.25))')
-        r('dev.off()')
+            #r.fluxBiasMulti(qUni=1, fluxUnit=4)
+            # Mesh output of time, q, and concentration
+            r('pdf("plotcontours.pdf")')
+            r('plotContours(1980, 2012, 5, 1000, qUnit=1, contourLevels=seq(0,2.5, 0.25))')
+            r('dev.off()')
 
-        # Difference between years
-        r('plotDiffContours(1985, 2011, 5, 1000, qUnit=1, maxDiff=1.0)')
-        """
+            # Difference between years
+            r('plotDiffContours(1985, 2011, 5, 1000, qUnit=1, maxDiff=1.0)')
+            """
+            context["progress"] = "Succeeded"
+            f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")
+            f.write(Template(template).render(context))
+            f.close()
+
         f = open(os.path.join(template_dir, 'nlcs.xml'))
         text = f.read()
         f.close()
         status = True
+        progress = "Started Processing"
+        status_location = str(uuid.uuid4()) + ".xml"
         context = {#"segments":upstream_segments,
                    "status":status,
                    "title":self.title,
                    "identifier":"calc_nutrient_load",
                    "abstract":self.abstract,
                    "version":self.version,
-                   "outp":self.outputs[0],
+                   "output":self.outputs[0],
                    "time":datetime.datetime.now().__str__(),
+                   "progress":progress,
+                   "status_location":status_location,
                   }
         context_dict = Context(context)
-        return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
+        f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")
+        f.write(Template(text).render(context_dict))
+        f.close()
 
+        ##Call longterm
+        p = multiprocessing.Process(target=longterm,
+                                    args=(lake,
+                                          date,
+                                          nutrient,
+                                          status_location,
+                                          text,
+                                          context_dict)
+                                    )
+        p.daemon = True
+        p.start()
+
+        return HttpResponse(Template(text).render(context_dict), content_type="text/xml")

@@ -38,7 +38,7 @@ class calc_nutrient_load(process):
     outputs = [
                 {"identifier":"nlcs_output",
                  "abstract":"The various results and output from the USGS EGRET:WRTDS nutrient load model for the selected Great Lake",
-                 "datatype":"application/json",
+                 "datatype":"text/xml",
                  "title":"Great Lakes Nutrient Load Calculation Output",
                  "literal":False},
               ]
@@ -65,11 +65,9 @@ class calc_nutrient_load(process):
         r('Daily = getDVData("01491000", "00060", "1979-09-01", "2011-09-30")')
 
         r('INFO = getMetaData("01491000", "00631", interactive=FALSE)')
-
-        #wq_data_sample = r.mergeReport(q_data_daily, wq_data_sample, interactive=False) # data retrieval
         r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
-        #r.multiPlotDataOverview(wq_data_sample, q_data_daily, info, qUnit=1)
-        r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
+
+        #r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
         """
         # Compute annual results
         r('modelEstimation()')
@@ -105,7 +103,7 @@ class calc_nutrient_load(process):
                    "identifier":"calc_nutrient_load",
                    "abstract":self.abstract,
                    "version":self.version,
-                   "outputs":self.outputs,
+                   "outp":self.outputs[0],
                    "time":datetime.datetime.now().__str__(),
                   }
         context_dict = Context(context)

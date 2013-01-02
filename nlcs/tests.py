@@ -22,7 +22,7 @@ class WpsTests(TestCase):
         """
         Test of wps version 1.0.0 execute function
         """
-        response = self.client.get('nlcs/?request=execute&version=1.0.0&identifier=calc_nutrient_load&datainputs=latitude=49.22%3Blongitude=-101.492')
+        response = self.client.get('/nlcs/?request=execute&version=1.0.0&identifier=calc_nutrient_load&datainputs=latitude=49.22%3Blongitude=-101.492')
         self.assertEqual(response.status_code, 200)
 
     def test_getCapabilities100(self):

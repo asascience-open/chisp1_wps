@@ -43,7 +43,7 @@ class add_gauge_to_stream(process):
                 {"identifier":"Status",
                  "abstract":"Message for success or informative error message if there were problems performing the request",
                  "datatype":"text/xml",
-                 "title":"Add Status",
+                 "title":"Add Gauge Status",
                  "literal":False},
               ]
     version = "1.0"
@@ -94,7 +94,7 @@ class remove_gauge_from_stream(process):
                 {"identifier":"Status",
                  "abstract":"Message for success or informative error message if there were problems performing the request",
                  "datatype":"text/xml",
-                 "title":"Add Status",
+                 "title":"Remove Gauge Status",
                  "literal":False},
               ]
     version = "1.0"
@@ -121,7 +121,7 @@ class find_upstream_gauges(process):
     inputs = [
                {"identifier":"latitude",
                 "abstract":"Latitude of point of interest in Degrees North", #abstract for parameter
-                "title":"Gauge IDs", #title of parameter
+                "title":"Latitude of point of interest", #title of parameter
                 "literal":True, #is literaldata, otherwise complex
                 "datatype":"float", #datatype
                 "reference":""}, #ows:Reference or Schema to datatype

@@ -18,13 +18,12 @@ class WpsTests(TestCase):
         response = views.describeProcess100("all").content
         assert response
 
-    def test_execute100(self):
-        """
-        Test of wps version 1.0.0 execute function
-        """
-##        response = views.execute100("test_process", "value1=1;value2=2;value3=1").content
-##        assert response == "<float>2.0</float>"
-        pass
+    def test_gaugeid_describeProcess(self):
+        s = Server.objects.create(
+                                  title="My Test Server Title",
+                                  implementation_site="http://localhost:8000/")
+        response = self.client.get('/wps/?request=describeprocess&identifier=all')
+        self.assertEqual(response.status_code, 200)
 
     def test_getCapabilities100(self):
         """

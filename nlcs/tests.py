@@ -18,6 +18,13 @@ class WpsTests(TestCase):
         response = views.describeProcess100("all").content
         assert response
 
+    def test_nlcs_describeProcess(self):
+        s = Server.objects.create(
+                                  title="My Test Server Title",
+                                  implementation_site="http://localhost:8000/")
+        response = self.client.get('/nlcs/?request=describeprocess&identifier=all')
+        self.assertEqual(response.status_code, 200)
+
     def test_execute100(self):
         """
         Test of wps version 1.0.0 execute function
@@ -32,6 +39,6 @@ class WpsTests(TestCase):
         s = Server.objects.create(
                                   title="My Test Server Title",
                                   implementation_site="http://localhost:8000/")
-        response = self.client.get('/wps/?request=GetCapabilities&Version=1.0.0')
+        response = self.client.get('/nlcs/?request=GetCapabilities&Version=1.0.0')
         self.assertEqual(response.status_code, 200)
 

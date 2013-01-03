@@ -34,7 +34,7 @@ def deploy():
         with settings(warn_only=True):
             run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
         run('git pull')
-        #run('../envs/standard/bin/python manage.py run_gunicorn 0.0.0.0:8080 -D')
+        run('../envs/standard/bin/python manage.py run_gunicorn 0.0.0.0:8080 -D')
 
 def clean():
     local('rm -rf *.pyc')

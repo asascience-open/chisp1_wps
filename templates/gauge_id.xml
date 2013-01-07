@@ -16,11 +16,13 @@
             <wps:Data>
                 <wps:ComplexData mimeType="{{output.datatype}}">
 {% for stream in segments %}<Stream>
+{% if stream.has_gauge %}
     <id>{{ stream.id }}</id>
-    {% if stream.has_gauge %}<Stations>
+    <Stations>
       {% for id in stream.gauge_ids %}<Station>{{id}}</Station>{% endfor %}
-    </Stations>{% endif %}
+    </Stations>
   </Stream>
+{% endif %}
 {% endfor %}
         </wps:ComplexData>
       </wps:Data>

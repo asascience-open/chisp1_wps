@@ -1,5 +1,5 @@
 from __future__ import with_statement
-from fabric.api import run, local, cd, settings, lcd, abort, env
+from fabric.api import run, local, cd, settings, lcd, abort, prefix, env
 from fabric.contrib.console import confirm
 
 env.hosts = ["chisp@192.168.250.103"] # local asa address

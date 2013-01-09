@@ -30,7 +30,7 @@ def deploy():
     test()
     prepare_deploy()
     #with run('source venvs/chisp/bin/activate'):
-    env.activate = 'source /home/envs/standard/bin/activate'
+    env.activate = 'source /home/chisp/envs/standard/bin/activate'
     with cd('chisp1_wps/'):
         with settings(warn_only=True):
             run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")

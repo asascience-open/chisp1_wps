@@ -151,25 +151,29 @@ class find_upstream_gauges(process):
         # http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=49.22;longitude=-101.49
         #latitude = float(latitude)
         #longitude = float(longitude)
-        upstream_request = "http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
-        url = urllib2.urlopen(upstream_request, timeout=120)
-        upstream_output = url.read()
-        upstream_output = et.fromstring(upstream_output)
-        upstream_segs = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
         upstream_segments = []
-        #print type(list(StreamGauge.objects.all())[0].river_segment_id)
-        for i in range(1,len(upstream_segs)):
-            upstream_segments.append({"id":upstream_segs[i].getchildren()[0].getchildren()[0].text,
-                                      "gauge_ids":[],
-                                      "has_gauge":False})
-            filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segments[-1]["id"])
-            for streamgauge in list(filtered_sg):
-                upstream_segments[-1]["gauge_ids"].append(streamgauge.stream_gauge_id)
-                upstream_segments[-1]["has_gauge"] = True
+        try:
+            upstream_request = "http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
+            url = urllib2.urlopen(upstream_request, timeout=120)
+            upstream_output = url.read()
+            upstream_output = et.fromstring(upstream_output)
+            upstream_segs = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
+
+            #print type(list(StreamGauge.objects.all())[0].river_segment_id)
+            for i in range(1,len(upstream_segs)):
+                upstream_segments.append({"id":upstream_segs[i].getchildren()[0].getchildren()[0].text,
+                                          "gauge_ids":[],
+                                          "has_gauge":False})
+                filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segments[-1]["id"])
+                for streamgauge in list(filtered_sg):
+                    upstream_segments[-1]["gauge_ids"].append(streamgauge.stream_gauge_id)
+                    upstream_segments[-1]["has_gauge"] = True
+            status = True
+        except:
+            status = False
         f = open(os.path.join(template_dir, 'gauge_id.xml'))
         text = f.read()
         f.close()
-        status = True
         context = {"segments":upstream_segments,
                    "status":status,
                    "title":self.title,

@@ -175,9 +175,9 @@ def execute100(identifier, inputs, callback=None):
             return HttpResponse(response)
     else:
         if type(response) == HttpResponse:
-            return HttpResponse(callback + "({data:'" + response.content + "'})", content_type="text/javascript")
+            return HttpResponse(callback + '({data:"' + response.content.replace('"', '\"').replace("\n","") + '"})', content_type="text/javascript")
         else:
-            return HttpResponse(callback + "({data:'" + response + "'})", content_type="text/javascript")
+            return HttpResponse(callback + '({data:"' + response.replace('"', '\"').replace("\n","") + '"})', content_type="text/javascript")
 
 def getCapabilities100():
     processes = dir(wps_processes)
@@ -204,4 +204,8 @@ def getCapabilities100():
 def outputs(request, filepath):
     f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", filepath)))
     text = f.read()
-    return HttpResponse(text, content_type="text/xml")
+    callback = getCallback(request)
+    if callback == None:
+        return HttpResponse(text, content_type="text/xml")
+    else:
+        return HttpResponse(callback + '({data:"' + text.replace('"', '\"').replace("\n","") + '"})', content_type="text/javascript")

@@ -175,7 +175,7 @@ def execute100(identifier, inputs, callback=None):
             return HttpResponse(response)
     else:
         if type(response) == HttpResponse:
-            HttpResponse(callback + "({data:" + response.content + "})")
+            return HttpResponse(callback + "({data:" + response.content + "})")
         else:
             return HttpResponse(callback + "({data:" + response + "})")
 

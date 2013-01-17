@@ -32,6 +32,13 @@ class WpsTests(TestCase):
         response = self.client.get('/nlcs/?request=execute&version=1.0.0&identifier=calc_nutrient_load&datainputs=lake=ontario%3Bdate=2013-01-01%3Bnutrient=nitrogen')
         self.assertEqual(response.status_code, 200)
 
+    def test_execute100_callback(self):
+        """
+        Test of wps version 1.0.0 execute function
+        """
+        response = self.client.get('/nlcs/?callback=mytestfunction&request=execute&version=1.0.0&identifier=calc_nutrient_load&datainputs=lake=ontario%3Bdate=2013-01-01%3Bnutrient=nitrogen')
+        self.assertEqual(response.status_code, 200)
+
     def test_getCapabilities100(self):
         """
         Test of wps version 1.0.0 getcapabilities function

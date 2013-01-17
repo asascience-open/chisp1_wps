@@ -76,6 +76,22 @@ def getVersion(request):
         pass
     return ver
 
+def getCallback(request):
+    ver = None
+    try:
+        ver = request.GET["callback"]
+    except:
+        pass
+    try:
+        ver = request.GET["Callback"]
+    except:
+        pass
+    try:
+        ver = request.GET["CALLBACK"]
+    except:
+        pass
+    return ver
+
 def getBoundingBox(request):
     try:
         lon1,lat1,lon2,lat2,georef,other = request.GET["bboxinput"].split(",")
@@ -108,7 +124,8 @@ def wps(request):
         elif call == 'execute':
             identifier = getIdentifier(request)
             inputs = getDataInputs(request)
-            return execute100(identifier, inputs)
+            callback = getCallback(request)
+            return execute100(identifier, inputs, callback)
         elif call == 'getcapabilities':
             return getCapabilities100()
     else:
@@ -141,7 +158,7 @@ def describeProcess100(identifier):
     context_dict = Context(context)
     return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
 
-def execute100(identifier, inputs):
+def execute100(identifier, inputs, callback=None):
     inputdict = {}
     inputs = inputs.strip("]").strip("[").split(";")
     for input in inputs:
@@ -151,10 +168,16 @@ def execute100(identifier, inputs):
     process = constructor()
     out = process.execute(**inputdict)
     response = out # Render response in wps process
-    if type(response) == HttpResponse:
-        return response
+    if callback == None:
+        if type(response) == HttpResponse:
+            return response
+        else:
+            return HttpResponse(response)
     else:
-        return HttpResponse(response)
+        if type(response) == HttpResponse:
+            response.content = callback + "({data:" + response.content + "})"
+        else:
+            return HttpResponse(callback + "({data:" + response + "})")
 
 def getCapabilities100():
     processes = dir(wps_processes)

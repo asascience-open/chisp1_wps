@@ -175,9 +175,9 @@ def execute100(identifier, inputs, callback=None):
             return HttpResponse(response)
     else:
         if type(response) == HttpResponse:
-            return HttpResponse(callback + "({data:" + response.content + "})")
+            return HttpResponse(callback + "({data:" + response.content + "})", content_type="text/javascript")
         else:
-            return HttpResponse(callback + "({data:" + response + "})")
+            return HttpResponse(callback + "({data:" + response + "})", content_type="text/javascript")
 
 def getCapabilities100():
     processes = dir(wps_processes)

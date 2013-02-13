@@ -153,7 +153,8 @@ class find_upstream_gauges(process):
         #longitude = float(longitude)
         upstream_segments = []
         try:
-            upstream_request = "http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
+            #upstream_request = "http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
+            upstream_request ="http://geogratis.gc.ca/geoserver/ows?service=wps&request=Execute&identifier=egp:UpstreamEn&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
             url = urllib2.urlopen(upstream_request, timeout=120)
             upstream_output = url.read()
             upstream_output = et.fromstring(upstream_output)

@@ -5,6 +5,7 @@ import xml.etree.ElementTree as et
 from django.template import Context, Template
 from django.http import HttpResponse
 import rpy2.robjects as robjects
+from xml.dom import minidom
 
 r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
@@ -69,6 +70,7 @@ class calc_nutrient_load(process):
             
             ## Make call to catalog get back station ids (using lake)
             #catalog command goes here...
+            stations = {}
             stations["US"] = ['01491000']
             stations["CAN"] = []
             for station in stations["US"]:
@@ -77,9 +79,11 @@ class calc_nutrient_load(process):
                 flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos?request=GetObservation&featureID=%s&offering=UNIT&observedProperty=00060&beginPosition=%s" % (station, date.split("/")[0]) # returns value in cfs (cubic feet per second)(00060)
                 url = urllib2.urlopen(flow_request, timeout=120)
                 raw_stream = url.read()
-                #parse raw_stream wml with laura's code
+                wml = minidom.parseString(raw_stream)
+                val, val_times = usgs.parse_sos_GetObservations(wml)
                 #add as extra col once wq data comes in
-                r('Daily = getDVData("01491000", "00060", "1979-09-01", "2011-09-30")')
+                #r('Daily = getDVData("01491000", "00060", "1979-09-01", "2011-09-30")')
+                val = np.asarray(val)
                 
                 ## Call WQ sos and put response into raw_csv
                 # Get water quality data:(station, parameter, startdate, enddate)
@@ -93,10 +97,18 @@ class calc_nutrient_load(process):
                 sos_dict = io.csv2dict(raw_csv)
                 for colname in sos_dict.iterkeys():
                     robjects.globalenv[colname.replace("/", "_")] = sos_dict[colname]
+                    #print(robjects.r(colname.replace("/", "_")))
                 r("Sample <- process_nlcs_wq(OrganizationIdentifier,OrganizationFormalName,ActivityIdentifier,ActivityTypeCode,ActivityMediaName,ActivityMediaSubdivisionName,ActivityStartDate,ActivityStartTime_Time,ActivityStartTime_TimeZoneCode,ActivityEndDate,ActivityEndTime_Time,ActivityEndTime_TimeZoneCode,ActivityDepthHeightMeasure_MeasureValue,ActivityDepthHeightMeasure_MeasureUnitCode,ActivityDepthAltitudeReferencePointText,ActivityTopDepthHeightMeasure_MeasureValue,ActivityTopDepthHeightMeasure_MeasureUnitCode,ActivityBottomDepthHeightMeasure_MeasureValue,ActivityBottomDepthHeightMeasure_MeasureUnitCode,ProjectIdentifier,ActivityConductingOrganizationText,MonitoringLocationIdentifier,ActivityCommentText,SampleAquifer,HydrologicCondition,HydrologicEvent,SampleCollectionMethod_MethodIdentifier,SampleCollectionMethod_MethodIdentifierContext,SampleCollectionMethod_MethodName,SampleCollectionEquipmentName,ResultDetectionConditionText,CharacteristicName,ResultSampleFractionText,ResultMeasureValue,ResultMeasure_MeasureUnitCode,MeasureQualifierCode,ResultStatusIdentifier,StatisticalBaseCode,ResultValueTypeName,ResultWeightBasisText,ResultTimeBasisText,ResultTemperatureBasisText,ResultParticleSizeBasisText,PrecisionValue,ResultCommentText,USGSPCode,ResultDepthHeightMeasure_MeasureValue,ResultDepthHeightMeasure_MeasureUnitCode,ResultDepthAltitudeReferencePointText,SubjectTaxonomicName,SampleTissueAnatomyName,ResultAnalyticalMethod_MethodIdentifier,ResultAnalyticalMethod_MethodIdentifierContext,ResultAnalyticalMethod_MethodName,MethodDescriptionText,LaboratoryName,AnalysisStartDate,ResultLaboratoryCommentText,DetectionQuantitationLimitTypeName,DetectionQuantitationLimitMeasure_MeasureValue,DetectionQuantitationLimitMeasure_MeasureUnitCode,PreparationStartDate)")
-
+                
+                sample_dates = map(lambda x, y: x+'T'+y, sos_dict["ActivityStartDate"], sos_dict["ActivityStartTime/Time"])
+                
                 #r('INFO = getMetaData("01491000", "00631", interactive=FALSE)')
-                r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
+                #r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
+                Q = val[index_corresponding_to_wq_times]
+                log_Q = np.log(Q)
+                robjects.globalenv["Q"] = Q
+                robjects.globalenv["log_Q"] = log_Q
+                r('Sample <- data.frame(Sample, Q, LogQ)') #https://github.com/USGS-R/dataRetrieval/blob/master/R/mergeReport.r
 
                 #r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
 
@@ -167,3 +179,4 @@ class calc_nutrient_load(process):
         p.start()
 
         return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
+        

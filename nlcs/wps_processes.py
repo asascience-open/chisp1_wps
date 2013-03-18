@@ -58,12 +58,14 @@ class calc_nutrient_load(process):
         pass
 
     def execute(self, lake, date, nutrient, **kwargs):
+        date = datetime.datetime.strptime(date, "%Y-%m-%d")
         def longterm(lake, date, nutrient, status_location, template, context, **kwargs):
             ## Import the required R modules:
             robjects.packages.importr("EGRET") #https://github.com/USGS-CIDA/WRTDS/wiki
             robjects.packages.importr("dataRetrieval") # for the internal R data connector to get data
             try:
-                r("source(%s'/nlcs_helper.R')" % os.path.abspath(os.path.dirname(__file__)))
+                #print '%s/nlcs_helper.R' % (os.path.abspath(os.path.dirname(__file__)))
+                r("source('%s/nlcs_helper.R')" % os.path.abspath(os.path.dirname(__file__)))
             except:
                 pass
             
@@ -74,12 +76,15 @@ class calc_nutrient_load(process):
             
             ## Make call to catalog get back station ids (using lake)
             #catalog command goes here...
+            tributaries = []
             stations = {}
             lats = {}
             lons = {}
+            load = {}
             stations["US"] = ['01491000']
             lats["US"] = [-75]
             lons["US"] = [44]
+            load["US"] = []
             stations["CAN"] = []
             for station, lat, lon in zip(stations["US"], lats["US"], lons["US"]):
                 ## Call Stream Gauge sos and put response into raw_csv
@@ -144,10 +149,16 @@ class calc_nutrient_load(process):
                 """
                 thisQ = val[np.where(np.abs(date-val_times)==np.min(np.abs(date-val_times)))[0]][0]
                 conc = r("Sample$value")
-                thisConc = conc[np.where(np.abs(date-sample_dates)==np.min(np.abs(date-sample_dates)))[0]][0]
-                load = thisQ * thisConc * 86400 / 0.0353147# load for 1 day in mg
+                sample_dates = np.asarray(sample_dates)
+                thisConc = conc[np.where(np.abs(date-sample_dates)==np.min(np.abs(date-sample_dates)))[0]]
+                load["US"].append(thisQ * thisConc * 86400 / 0.0353147 / 1000)# load for 1 day in grams
+                #print load["US"][-1]
             context["progress"] = "Succeeded at " + datetime.datetime.now().__str__()
             context["done"] = True
+            context["totalload"] = np.asarray(load["US"]).sum()
+            context["lake"] = lake
+            context["tributaries"] = [{"name":"My Test Tributary", "lat":"haha", "lon":"haha", "load":load["US"][-1],"percent":load["US"][-1]/context["totalload"]},]#tributaries
+            context = Context(context)
             f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")
             f.write(Template(template).render(context))
             f.close()

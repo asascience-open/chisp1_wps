@@ -14,15 +14,23 @@
             <ows:Title>{{output.title}}</ows:Title>
             <wps:Data>
                 <wps:ComplexData mimeType="{{output.datatype}}">
-                    <!--Start Dummy Data-->
                     {% if done %}
-                    <Lake name="Ontario" load="500">
+                    <!--Start Dummy Data-->
+                    <!--<Lake name="Ontario" load="500">
                       <Rivers>
                         <River name="My Test Tributary" lat="41" lon="74" load="300" contribution="60%" />
                       </Rivers>
+                    </Lake>-->
+                    <!--End Dummy Data-->
+                    <Lake name="{{lake}}" load="{{totalload}}">
+                        <Rivers>
+                    {% for trib in tributaries %}
+                            <River name="{{trib.name}}" lat="{{trib.lat}}" lon="{{trib.lon}}" load="{{trib.load}}" contribution="{{trib.percent}}" />
+                    {% endfor %}
+                        </Rivers>
                     </Lake>
                     {% endif %}
-                    <!--End Dummy Data-->
+                    
                 </wps:ComplexData>
       </wps:Data>
     </wps:Output>

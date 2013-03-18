@@ -1,4 +1,4 @@
-import os, sys, urllib2, datetime, multiprocessing, uuid, io, urllib2
+import os, sys, urllib2, datetime, multiprocessing, uuid, io, urllib2, usgs
 from process import process
 from wps.models import Server
 import xml.etree.ElementTree as et
@@ -6,6 +6,7 @@ from django.template import Context, Template
 from django.http import HttpResponse
 import rpy2.robjects as robjects
 from xml.dom import minidom
+import numpy as np
 
 r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
@@ -61,7 +62,10 @@ class calc_nutrient_load(process):
             ## Import the required R modules:
             robjects.packages.importr("EGRET") #https://github.com/USGS-CIDA/WRTDS/wiki
             robjects.packages.importr("dataRetrieval") # for the internal R data connector to get data
-            r("source('nlcs_helper.R')")
+            try:
+                r("source(%s'/nlcs_helper.R')" % os.path.abspath(os.path.dirname(__file__)))
+            except:
+                pass
             
             ## Inputs
             nutrient = "Nitrogen" # nutrient
@@ -74,8 +78,8 @@ class calc_nutrient_load(process):
             lats = {}
             lons = {}
             stations["US"] = ['01491000']
-            lats = [-75]
-            lons = [44]
+            lats["US"] = [-75]
+            lons["US"] = [44]
             stations["CAN"] = []
             for station, lat, lon in zip(stations["US"], lats["US"], lons["US"]):
                 ## Call Stream Gauge sos and put response into raw_csv

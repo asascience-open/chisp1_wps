@@ -66,17 +66,21 @@ class calc_nutrient_load(process):
             ## Inputs
             nutrient = "Nitrogen" # nutrient
             lake = 'ontario' # lake
-            date = '1979-06-10T00:00:00Z/2011-09-15T00:00:00Z' # date
+            date_range = '1979-06-10T00:00:00Z/2014-09-15T00:00:00Z' # date
             
             ## Make call to catalog get back station ids (using lake)
             #catalog command goes here...
             stations = {}
+            lats = {}
+            lons = {}
             stations["US"] = ['01491000']
+            lats = [-75]
+            lons = [44]
             stations["CAN"] = []
-            for station in stations["US"]:
+            for station, lat, lon in zip(stations["US"], lats["US"], lons["US"]):
                 ## Call Stream Gauge sos and put response into raw_csv
                 # Get volume flow data:(station, "00060", startdate, enddate)
-                flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos?request=GetObservation&featureID=%s&offering=UNIT&observedProperty=00060&beginPosition=%s" % (station, date.split("/")[0]) # returns value in cfs (cubic feet per second)(00060)
+                flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos?request=GetObservation&featureID=%s&offering=UNIT&observedProperty=00060&beginPosition=%s" % (station, date_range.split("/")[0]) # returns value in cfs (cubic feet per second)(00060)
                 url = urllib2.urlopen(flow_request, timeout=120)
                 raw_stream = url.read()
                 wml = minidom.parseString(raw_stream)
@@ -89,29 +93,27 @@ class calc_nutrient_load(process):
                 # Get water quality data:(station, parameter, startdate, enddate)
                 #r('Sample = getSampleData("01491000", "00631", "1979-09-01", "2011-09-30")')
                 #http://sos.chisp1.asascience.com/sos?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=1979-06-10T00:00:00Z/2011-09-15T00:00:00Z&offering=network-all&observedProperty=Nitrogen&procedure=USGS-01491000
-                wq_request ="http://sos.chisp1.asascience.com/sos?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=%s&offering=network-all&observedProperty=%s&procedure=%s" % (date, nutrient, "USGS-"+station)
-                url = urllib2.urlopen(wq_request, timeout=120)
-                raw_csv = url.read()
+                wq_request ="http://sos.chisp1.asascience.com/sos?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/tsv&eventtime=%s&offering=network-all&observedProperty=%s&procedure=%s" % (date_range, nutrient, "USGS-"+station)
+                #url = urllib2.urlopen(wq_request, timeout=120)
+                #raw_tsv = url.read()
+                robjects.globalenv["tsvurl"] = wq_request
+                r("Sample = process_nlcs_wq(tsvurl);")
                 
-                ## Parse csv into dict
-                sos_dict = io.csv2dict(raw_csv)
-                for colname in sos_dict.iterkeys():
-                    robjects.globalenv[colname.replace("/", "_")] = sos_dict[colname]
-                    #print(robjects.r(colname.replace("/", "_")))
-                r("Sample <- process_nlcs_wq(OrganizationIdentifier,OrganizationFormalName,ActivityIdentifier,ActivityTypeCode,ActivityMediaName,ActivityMediaSubdivisionName,ActivityStartDate,ActivityStartTime_Time,ActivityStartTime_TimeZoneCode,ActivityEndDate,ActivityEndTime_Time,ActivityEndTime_TimeZoneCode,ActivityDepthHeightMeasure_MeasureValue,ActivityDepthHeightMeasure_MeasureUnitCode,ActivityDepthAltitudeReferencePointText,ActivityTopDepthHeightMeasure_MeasureValue,ActivityTopDepthHeightMeasure_MeasureUnitCode,ActivityBottomDepthHeightMeasure_MeasureValue,ActivityBottomDepthHeightMeasure_MeasureUnitCode,ProjectIdentifier,ActivityConductingOrganizationText,MonitoringLocationIdentifier,ActivityCommentText,SampleAquifer,HydrologicCondition,HydrologicEvent,SampleCollectionMethod_MethodIdentifier,SampleCollectionMethod_MethodIdentifierContext,SampleCollectionMethod_MethodName,SampleCollectionEquipmentName,ResultDetectionConditionText,CharacteristicName,ResultSampleFractionText,ResultMeasureValue,ResultMeasure_MeasureUnitCode,MeasureQualifierCode,ResultStatusIdentifier,StatisticalBaseCode,ResultValueTypeName,ResultWeightBasisText,ResultTimeBasisText,ResultTemperatureBasisText,ResultParticleSizeBasisText,PrecisionValue,ResultCommentText,USGSPCode,ResultDepthHeightMeasure_MeasureValue,ResultDepthHeightMeasure_MeasureUnitCode,ResultDepthAltitudeReferencePointText,SubjectTaxonomicName,SampleTissueAnatomyName,ResultAnalyticalMethod_MethodIdentifier,ResultAnalyticalMethod_MethodIdentifierContext,ResultAnalyticalMethod_MethodName,MethodDescriptionText,LaboratoryName,AnalysisStartDate,ResultLaboratoryCommentText,DetectionQuantitationLimitTypeName,DetectionQuantitationLimitMeasure_MeasureValue,DetectionQuantitationLimitMeasure_MeasureUnitCode,PreparationStartDate)")
-                
-                sample_dates = map(lambda x, y: x+'T'+y, sos_dict["ActivityStartDate"], sos_dict["ActivityStartTime/Time"])
+                sample_dates = r("as.character(Sample$dateTime)")
+                sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in sample_dates]
                 
                 #r('INFO = getMetaData("01491000", "00631", interactive=FALSE)')
                 #r('Sample = mergeReport(Daily, Sample, interactive=FALSE)')
-                Q = val[index_corresponding_to_wq_times]
-                log_Q = np.log(Q)
+                val_times = np.asarray(val_times)
+                Q = [val[np.where(np.abs(thistime-val_times)==np.min(np.abs(thistime-val_times)))[0]][0] for thistime in sample_dates] # need to ignore the closest indexes when they are outside of the period that exists for wq records...(or visa-vera)
+                log_Q = list(np.log(Q))
                 robjects.globalenv["Q"] = Q
-                robjects.globalenv["log_Q"] = log_Q
+                robjects.globalenv["LogQ"] = log_Q
                 r('Sample <- data.frame(Sample, Q, LogQ)') #https://github.com/USGS-R/dataRetrieval/blob/master/R/mergeReport.r
 
                 #r('multiPlotDataOverview(Sample, Daily, INFO, qUnit=1)')
 
+                """
                 # Compute annual results
                 r('modelEstimation()')
                 #annual_results = r.setupYears(paLong=12, paStart=1, localDaily=q_data_daily) # (paLong=12, paStart=1)
@@ -135,7 +137,11 @@ class calc_nutrient_load(process):
 
                 # Difference between years
                 r('plotDiffContours(1985, 2011, 5, 1000, qUnit=1, maxDiff=1.0)')
-
+                """
+                thisQ = val[np.where(np.abs(date-val_times)==np.min(np.abs(date-val_times)))[0]][0]
+                conc = r("Sample$value")
+                thisConc = conc[np.where(np.abs(date-sample_dates)==np.min(np.abs(date-sample_dates)))[0]][0]
+                load = thisQ * thisConc * 86400 / 0.0353147# load for 1 day in mg
             context["progress"] = "Succeeded at " + datetime.datetime.now().__str__()
             context["done"] = True
             f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")

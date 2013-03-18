@@ -163,11 +163,13 @@ class find_upstream_gauges(process):
             #print type(list(StreamGauge.objects.all())[0].river_segment_id)
             for i in range(1,len(upstream_segs)):
                 upstream_segments.append({"id":upstream_segs[i].getchildren()[0].getchildren()[0].text,
-                                          "gauge_ids":[],
+                                          "river_name":upstream_segs[i].getchildren()[0].getchildren()[1].text,
+                                          "gauge":[],
                                           "has_gauge":False})
                 filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segments[-1]["id"])
                 for streamgauge in list(filtered_sg):
-                    upstream_segments[-1]["gauge_ids"].append(streamgauge.stream_gauge_id)
+                    upstream_segments[-1]["gauge"].append({"id":streamgauge.stream_gauge_id, "lon":streamgauge.stream_gauge_x, "lat":streamgauge.stream_gauge_y})
+                    print upstream_segments[-1]["gauge"]
                     upstream_segments[-1]["has_gauge"] = True
             status = True
         except:

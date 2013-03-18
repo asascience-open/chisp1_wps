@@ -17,8 +17,9 @@
                 <wps:ComplexData mimeType="{{output.datatype}}">
 {% for stream in segments %}{% if stream.has_gauge %}<Stream>
     <id>{{ stream.id }}</id>
+    <name>{{ stream.river_name }}</name>
     <Stations>
-      {% for id in stream.gauge_ids %}<Station>{{id}}</Station>{% endfor %}
+      {% for gauge in stream.gauge %}<Station latitude="{{gauge.lat}}" longitude="{{gauge.lon}}">{{gauge.id}}</Station>{% endfor %}
     </Stations>
   </Stream>{% endif %}{% endfor %}
         </wps:ComplexData>

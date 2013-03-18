@@ -34,7 +34,8 @@ def deploy():
     with cd('chisp1_wps/'):
         with settings(warn_only=True):
             run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
-        run("rm *pyc")
+        with settings(warn_only=True):
+            run("rm *pyc")
         run('git pull -f')
         with prefix(env.activate):
             run('python manage.py run_gunicorn -w 6 -k eventlet -b 0.0.0.0:8080')

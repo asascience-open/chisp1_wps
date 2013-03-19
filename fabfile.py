@@ -72,5 +72,5 @@ def restart():
         with settings(warn_only=True):
             run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
         with prefix(env.activate):
-            run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080')
+            run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080 --graceful-timeout 120')
 

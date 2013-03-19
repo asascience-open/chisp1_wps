@@ -85,8 +85,8 @@ class calc_nutrient_load(process):
                 #print flow_request
                 #url = urllib2.urlopen(flow_request, timeout=120)
                 #raw_stream = url.read()
-                print flow_request
                 r = requests.get(flow_request, params=flow_args)
+                print r.url
                 raw_stream = r.text
                 wml = minidom.parseString(raw_stream)
                 val, val_times = usgs.parse_sos_GetObservations(wml)
@@ -122,6 +122,7 @@ class calc_nutrient_load(process):
             f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")
             f.write(Template(template).render(context))
             f.close()
+            return template, context
 
         f = open(os.path.join(template_dir, 'nlcs.xml'))
         text = f.read()
@@ -148,6 +149,7 @@ class calc_nutrient_load(process):
         f.close()
 
         ##Call longterm
+        '''
         p = multiprocessing.Process(target=longterm,
                                     args=(lake,
                                           date,
@@ -158,6 +160,8 @@ class calc_nutrient_load(process):
                                     )
         p.daemon = True
         p.start()
+        '''
+        text, context = longterm(lake, date, nutrient, status_location, text, context_dict)
 
         return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
         

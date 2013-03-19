@@ -1,13 +1,10 @@
 import numpy as np
+import StringIO
 
 def csv2dict(csvtext, headers=1):
     import csv
-
-    ifile  = open("temp", "w")
-    ifile.write(csvtext)
-    ifile.close
-    ifile = open("temp", "rb")
-    reader = csv.reader(ifile)
+    #print csvtext
+    reader = csv.reader(StringIO.StringIO(csvtext))
     data = {}
     rownum = 0
     for row in reader:
@@ -17,6 +14,7 @@ def csv2dict(csvtext, headers=1):
             for head in header:
                 data[head] = []
         else:
+            #print len(header), len(data[1]), header
             colnum = 0
             for col in row:
                 #print 'current data %-8s: %s' % (header[colnum], type(col))
@@ -27,6 +25,4 @@ def csv2dict(csvtext, headers=1):
                 colnum += 1
                 
         rownum += 1
-
-    ifile.close()
     return data

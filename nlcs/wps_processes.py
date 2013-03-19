@@ -1,4 +1,4 @@
-import os, sys, datetime, multiprocessing, uuid, io, usgs
+import os, sys, datetime, multiprocessing, uuid, io, usgs, gevent
 from process import process
 from wps.models import Server
 import xml.etree.ElementTree as et

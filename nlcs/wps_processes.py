@@ -149,7 +149,7 @@ class calc_nutrient_load(process):
         f.close()
 
         ##Call longterm
-        '''
+        
         p = multiprocessing.Process(target=longterm,
                                     args=(lake,
                                           date,
@@ -160,8 +160,8 @@ class calc_nutrient_load(process):
                                     )
         p.daemon = True
         p.start()
-        '''
-        text, context = longterm(lake, date, nutrient, status_location, text, context_dict)
+        
+        #text, context = longterm(lake, date, nutrient, status_location, text, context_dict)
 
         return HttpResponse(Template(text).render(context_dict), content_type="text/xml")
         

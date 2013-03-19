@@ -90,6 +90,7 @@ class calc_nutrient_load(process):
                 ## Call Stream Gauge sos and put response into raw_csv
                 # Get volume flow data:(station, "00060", startdate, enddate)
                 flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos?request=GetObservation&featureID=%s&offering=UNIT&observedProperty=00060&beginPosition=%s" % (station, date_range.split("/")[0]) # returns value in cfs (cubic feet per second)(00060)
+                print flow_request
                 url = urllib2.urlopen(flow_request, timeout=120)
                 raw_stream = url.read()
                 wml = minidom.parseString(raw_stream)

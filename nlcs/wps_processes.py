@@ -86,6 +86,7 @@ class calc_nutrient_load(process):
             lons["US"] = [44]
             load["US"] = []
             stations["CAN"] = []
+            '''
             for station, lat, lon in zip(stations["US"], lats["US"], lons["US"]):
                 ## Call Stream Gauge sos and put response into raw_csv
                 # Get volume flow data:(station, "00060", startdate, enddate)
@@ -154,11 +155,12 @@ class calc_nutrient_load(process):
                 thisConc = conc[np.where(np.abs(date-sample_dates)==np.min(np.abs(date-sample_dates)))[0]]
                 load["US"].append(thisQ * thisConc * 86400 / 0.0353147 / 1000)# load for 1 day in grams
                 #print load["US"][-1]
+                '''
             context["progress"] = "Succeeded at " + datetime.datetime.now().__str__()
             context["done"] = True
             context["totalload"] = np.asarray(load["US"]).sum()
             context["lake"] = lake
-            context["tributaries"] = [{"name":"My Test Tributary", "lat":"haha", "lon":"haha", "load":load["US"][-1],"percent":load["US"][-1]/context["totalload"]},]#tributaries
+            context["tributaries"] = [{"name":"My Test Tributary", "lat":"haha", "lon":"haha", "load":500,"percent":500/600},]#tributaries
             context = Context(context)
             f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")
             f.write(Template(template).render(context))

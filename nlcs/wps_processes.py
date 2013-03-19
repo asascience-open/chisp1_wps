@@ -1,4 +1,4 @@
-import os, sys, urllib2, datetime, multiprocessing, uuid, io, urllib2, usgs
+import os, sys, datetime, multiprocessing, uuid, io, usgs
 from process import process
 from wps.models import Server
 import xml.etree.ElementTree as et
@@ -7,6 +7,7 @@ from django.http import HttpResponse
 #import rpy2.robjects as robjects
 from xml.dom import minidom
 import numpy as np
+import requests
 
 #r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
@@ -81,16 +82,19 @@ class calc_nutrient_load(process):
                 # Get volume flow data:(station, "00060", startdate, enddate)
                 flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos?request=GetObservation&featureID=%s&offering=UNIT&observedProperty=00060&beginPosition=%s" % (station, date_range.split("/")[0]) # returns value in cfs (cubic feet per second)(00060)
                 #print flow_request
-                url = urllib2.urlopen(flow_request, timeout=120)
-                raw_stream = url.read()
+                #url = urllib2.urlopen(flow_request, timeout=120)
+                #raw_stream = url.read()
+                r = requests.get(flow_request)
+                raw_stream = r.text()
                 wml = minidom.parseString(raw_stream)
                 val, val_times = usgs.parse_sos_GetObservations(wml)
                 val = np.asarray(val)
                 #http://sos.chisp1.asascience.com/sos?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=1979-06-10T00:00:00Z/2011-09-15T00:00:00Z&offering=network-all&observedProperty=Nitrogen&procedure=USGS-01491000
                 wq_request ="http://sos.chisp1.asascience.com/sos?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=%s&offering=network-all&observedProperty=%s&procedure=%s" % (date_range, nutrient, "USGS-"+station)
-                url = urllib2.urlopen(wq_request, timeout=120)
-                raw_wq_csv = url.read()
-                wq_dict = io.csv2dict(raw_wq_csv)
+                #url = urllib2.urlopen(wq_request, timeout=120)
+                #raw_wq_csv = url.read()
+                r = requests.get(wq_request)
+                wq_dict = io.csv2dict(r.text())
                 
                 sample_dates = wq_dict["ActivityStartDate"]
                 conc = wq_dict["ResultMeasureValue"]

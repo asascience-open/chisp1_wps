@@ -4,11 +4,11 @@ from wps.models import Server
 import xml.etree.ElementTree as et
 from django.template import Context, Template
 from django.http import HttpResponse
-import rpy2.robjects as robjects
+#import rpy2.robjects as robjects
 from xml.dom import minidom
 import numpy as np
 
-r = robjects.r
+#r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
 outputs_url = Server.objects.all()[0].implementation_site +"/outputs/"
 

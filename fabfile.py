@@ -38,7 +38,7 @@ def deploy():
             run("rm *pyc")
         run('git pull -f')
         with prefix(env.activate):
-            run('python manage.py run_gunicorn -w 6 -k sync -b 0.0.0.0:8080')
+            run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080')
     #print 'Please run the following command on the server to start the service:\n\npython manage.py run_gunicorn -w 3 -k eventlet -b 0.0.0.0:8080 &'
 
 def clean():

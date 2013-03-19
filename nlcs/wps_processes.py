@@ -80,12 +80,14 @@ class calc_nutrient_load(process):
             for station, lat, lon in zip(stations, lats, lons):
                 ## Call Stream Gauge sos and put response into raw_csv
                 # Get volume flow data:(station, "00060", startdate, enddate)
-                flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos?request=GetObservation&featureID=%s&offering=UNIT&observedProperty=00060&beginPosition=%s" % (station, date_range.split("/")[0]) # returns value in cfs (cubic feet per second)(00060)
+                flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos"
+                flow_args = {"request":"GetObservation", "featureID":station, "offering":"UNIT","observedProperty":"00060","beginPosition":date_range.split("/")[0]} # returns value in cfs (cubic feet per second)(00060)
                 #print flow_request
                 #url = urllib2.urlopen(flow_request, timeout=120)
                 #raw_stream = url.read()
-                r = requests.get(flow_request)
-                raw_stream = r.text()
+                print flow_request
+                r = requests.get(flow_request, params=flow_args)
+                raw_stream = r.text
                 wml = minidom.parseString(raw_stream)
                 val, val_times = usgs.parse_sos_GetObservations(wml)
                 val = np.asarray(val)
@@ -94,7 +96,7 @@ class calc_nutrient_load(process):
                 #url = urllib2.urlopen(wq_request, timeout=120)
                 #raw_wq_csv = url.read()
                 r = requests.get(wq_request)
-                wq_dict = io.csv2dict(r.text())
+                wq_dict = io.csv2dict(r.text)
                 
                 sample_dates = wq_dict["ActivityStartDate"]
                 conc = wq_dict["ResultMeasureValue"]

@@ -36,10 +36,30 @@ def deploy():
             run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
         with settings(warn_only=True):
             run("rm *pyc")
-        run('git pull -f')
+        run('git pull -f origin master')
         with prefix(env.activate):
             run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080')
     #print 'Please run the following command on the server to start the service:\n\npython manage.py run_gunicorn -w 3 -k eventlet -b 0.0.0.0:8080 &'
+
+def clonenew():
+    clean()
+    test()
+    prepare_deploy()
+    #with run('source venvs/chisp/bin/activate'):
+    env.activate = 'source /home/chisp/envs/standard/bin/activate'
+    with cd('chisp1_wps/'):
+        with settings(warn_only=True):
+            run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
+        #with settings(warn_only=True):
+        #    run("rm *pyc")
+        with cd('../'):
+            run('rm -rf chisp1_wps/')
+            #run('git pull -f origin master')
+            run('git clone git://github.com/asascience-open/chisp1_wps.git')
+        with prefix(env.activate):
+            run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080')
+    #print 'Please run the following command on the server to start the service:\n\npython manage.py run_gunicorn -w 3 -k eventlet -b 0.0.0.0:8080 &'
+
 
 def clean():
     local('rm -rf */*.pyc')

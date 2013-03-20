@@ -92,7 +92,7 @@ class calc_nutrient_load(process):
                 val, val_times = usgs.parse_sos_GetObservations(wml)
                 val = np.asarray(val)
                 #http://sos.chisp1.asascience.com/sos?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=1979-06-10T00:00:00Z/2011-09-15T00:00:00Z&offering=network-all&observedProperty=Nitrogen&procedure=USGS-01491000
-                wq_request ="http://sos.chisp1.asascience.com/sos"#?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=%s&offering=network-all&observedProperty=%s&procedure=%s" % (date_range, nutrient, "USGS-"+station)
+                wq_request ="http://localhost:8000/sos"#"http://sos.chisp1.asascience.com/sos"#?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=%s&offering=network-all&observedProperty=%s&procedure=%s" % (date_range, nutrient, "USGS-"+station)
                 wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":"network-all", 
                 "observedProperty":nutrient, "procedure":"USGS"+station}
                 #url = urllib2.urlopen(wq_request, timeout=120)

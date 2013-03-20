@@ -99,7 +99,7 @@ class calc_nutrient_load(process):
                 #raw_wq_csv = url.read()
                 r = requests.get(wq_request, params=wq_args)
                 wq_dict = io.csv2dict(r.text)
-                
+                print wq_dict
                 sample_dates = wq_dict["ActivityStartDate"]
                 conc = wq_dict["ResultMeasureValue"]
                 sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in sample_dates]

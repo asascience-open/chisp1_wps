@@ -38,7 +38,7 @@ def deploy():
             run("rm *pyc")
         run('git pull -f origin master')
         with prefix(env.activate):
-            run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080 --graceful-timeout 120 --keep-alive 20')
+            run('python manage.py run_gunicorn -w 6 -k tornado -b 0.0.0.0:8080 --timeout 120 --graceful-timeout 120 --keep-alive 20')
     #print 'Please run the following command on the server to start the service:\n\npython manage.py run_gunicorn -w 3 -k eventlet -b 0.0.0.0:8080 &'
 
 def clonenew():
@@ -56,7 +56,7 @@ def clonenew():
     run('git clone git://github.com/asascience-open/chisp1_wps.git')
     with cd('chisp1_wps'):
         with prefix(env.activate):
-            run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080 --graceful-timeout 120 --keep-alive 20')
+            run('python manage.py run_gunicorn -w 6 -k tornado -b 0.0.0.0:8080 --timeout 120 --graceful-timeout 120 --keep-alive 20')
     #print 'Please run the following command on the server to start the service:\n\npython manage.py run_gunicorn -w 3 -k eventlet -b 0.0.0.0:8080 &'
 
 
@@ -72,5 +72,5 @@ def restart():
         with settings(warn_only=True):
             run("kill -9 $(ps aux | grep run_gunicorn | awk '{print $2}')")
         with prefix(env.activate):
-            run('python manage.py run_gunicorn -w 6 -k gevent -b 0.0.0.0:8080 --graceful-timeout 120 --keep-alive 20')
+            run('python manage.py run_gunicorn -w 6 -k tornado -b 0.0.0.0:8080 --timeout 120 --graceful-timeout 120 --keep-alive 20')
 

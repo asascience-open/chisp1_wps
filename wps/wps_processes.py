@@ -1,4 +1,4 @@
-import os, sys, urllib2, datetime
+import os, sys, datetime, requests
 from process import process
 from wps.models import StreamGauge
 import xml.etree.ElementTree as et
@@ -155,9 +155,11 @@ class find_upstream_gauges(process):
         try:
             #upstream_request = "http://ows.geobase.ca/wps/geobase?Service=WPS&Request=Execute&Version=1.0.0&identifier=NHNUpstreamIDs&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
             upstream_request ="http://geogratis.gc.ca/geoserver/ows?service=wps&request=Execute&identifier=egp:UpstreamEn&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
-            url = urllib2.urlopen(upstream_request, timeout=120)
-            upstream_output = url.read()
-            upstream_output = et.fromstring(upstream_output)
+            #url = urllib2.urlopen(upstream_request, timeout=120)
+            #upstream_output = url.read()
+            r = requests.get(upstream_request)
+            print r.url
+            upstream_output = et.fromstring(r.text)
             upstream_segs = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
 
             #print type(list(StreamGauge.objects.all())[0].river_segment_id)
@@ -169,7 +171,7 @@ class find_upstream_gauges(process):
                 filtered_sg = StreamGauge.objects.filter(river_segment_id__contains=upstream_segments[-1]["id"])
                 for streamgauge in list(filtered_sg):
                     upstream_segments[-1]["gauge"].append({"id":streamgauge.stream_gauge_id, "lon":streamgauge.stream_gauge_x, "lat":streamgauge.stream_gauge_y})
-                    print upstream_segments[-1]["gauge"]
+                    #print upstream_segments[-1]["gauge"]
                     upstream_segments[-1]["has_gauge"] = True
             status = True
         except:

@@ -86,7 +86,7 @@ class calc_nutrient_load(process):
                 #url = urllib2.urlopen(flow_request, timeout=120)
                 #raw_stream = url.read()
                 r = requests.get(flow_request, params=flow_args)
-                print r.url
+                #print r.url
                 raw_stream = r.text
                 wml = minidom.parseString(raw_stream)
                 val, val_times = usgs.parse_sos_GetObservations(wml)
@@ -99,7 +99,7 @@ class calc_nutrient_load(process):
                 #raw_wq_csv = url.read()
                 r = requests.get(wq_request, params=wq_args)
                 wq_dict = io.csv2dict(r.text)
-                print wq_dict, r.url
+                #print wq_dict, r.url
                 sample_dates = wq_dict["ActivityStartDate"]
                 conc = wq_dict["ResultMeasureValue"]
                 sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in sample_dates]

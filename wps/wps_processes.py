@@ -157,8 +157,9 @@ class find_upstream_gauges(process):
             upstream_request ="http://geogratis.gc.ca/geoserver/ows?service=wps&request=Execute&identifier=egp:UpstreamEn&DataInputs=latitude=%s;longitude=%s" % (latitude, longitude)
             #url = urllib2.urlopen(upstream_request, timeout=120)
             #upstream_output = url.read()
+            print upstream_request
             r = requests.get(upstream_request)
-            print r.url
+            
             upstream_output = et.fromstring(r.text)
             upstream_segs = upstream_output.getchildren()[2].getchildren()[0].getchildren()[2].getchildren()[0].getchildren()[0]
 

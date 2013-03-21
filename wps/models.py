@@ -23,6 +23,8 @@ class Server(models.Model):
 
     # This implementation
     implementation_site     = models.CharField(max_length=1000, help_text="Web Address for This Implementation", blank=False)
+    def __unicode__(self):
+        return self.implementation_site
 
 # Add other implementation specific classes here
 class StreamGauge(models.Model):
@@ -34,3 +36,5 @@ class StreamGauge(models.Model):
     stream_gauge_parameters = models.CharField(max_length=50000, help_text="Comma separated list of observedProperty parameters for this station through SOS endpoint", blank=True)
     stream_gauge_x = models.DecimalField(help_text="Longitude or X coodinate", blank=True, max_digits=20, decimal_places=8)
     stream_gauge_y = models.DecimalField(help_text="Latitude or Y coordinate", blank=True, max_digits=20, decimal_places=8)
+    def __unicode__(self):
+        return self.stream_gauge_id

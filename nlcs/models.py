@@ -2,26 +2,36 @@ from django.db import models
 
 # Create your models here.
 
-class Server(models.Model):
-    # Server
-    title    = models.CharField(max_length=1000, help_text="Server Title", blank=False)
-    abstract = models.CharField(max_length=2000, help_text="Server Abstract", blank=True)
-    keywords = models.CharField(max_length=2000, help_text="Comma Separated List of Keywords", blank=True)
-
-    # Contact
-    contact_person          = models.CharField(max_length=1000, help_text="Person to Contact", blank=True)
-    contact_organization    = models.CharField(max_length=1000, help_text="Contact Organization", blank=True)
-    contact_position        = models.CharField(max_length=1000, help_text="Contact Position (Optional)", blank=True)
-    contact_street_address  = models.CharField(max_length=1000, help_text="Street Address (Optional)", blank=True)
-    contact_city_address    = models.CharField(max_length=1000, help_text="Address: City (Optional)", blank=True)
-    contact_state_address   = models.CharField(max_length=1000, help_text="Address: State or Providence (Optional)", blank=True)
-    contact_code_address    = models.CharField(max_length=1000, help_text="Address: Postal Code (Optional)", blank=True)
-    contact_country_address = models.CharField(max_length=1000, help_text="Address: Country (Optional)", blank=True)
-    contact_telephone       = models.CharField(max_length=1000, help_text="Contact Telephone Number (Optional)", blank=True)
-    contact_email           = models.CharField(max_length=1000, help_text="Contact Email Address", blank=True)
-    contact_site            = models.CharField(max_length=1000, help_text="Contact Web Site", blank=True)
-
-    # This implementation
-    implementation_site     = models.CharField(max_length=1000, help_text="Web Address for This Implementation", blank=False)
-
-# Add other implementation specific classes here
+class Lake(models.Model):
+    name = models.CharField("name of the great lake", max_length=30, unique=True)
+    def __unicode__(self):
+        return self.name
+    
+class Tributary(models.Model):
+    lake = models.ForeignKey(Lake, verbose_name="the lake that this tributary drains into")
+    country = models.CharField(max_length=3)
+    name = models.CharField(max_length=100, unique=True)
+    def __unicode__(self):
+        return self.name
+    
+class WaterQuality(models.Model):
+    tributary = models.ForeignKey(Tributary, verbose_name="the river that this water quality station is on")
+    sos_endpoint = models.CharField(max_length=300)
+    name = models.CharField(max_length=100)
+    startdate = models.DateField()
+    enddate = models.DateField()
+    station = models.CharField(max_length=100)
+    def __unicode__(self):
+        return self.station
+    
+class StreamGauge(models.Model):
+    tributary = models.ForeignKey(Tributary, verbose_name="the river that this stream gauge is on")
+    sos_endpoint = models.CharField(max_length=300)
+    name = models.CharField(max_length=100)
+    startdate = models.DateField()
+    enddate = models.DateField()
+    latitude = models.DecimalField(help_text="Latitude or Y coordinate", blank=True, max_digits=20, decimal_places=8)
+    longitude = models.DecimalField(help_text="Longitude or X coordinate", blank=True, max_digits=20, decimal_places=8)
+    station = models.CharField(max_length=100)
+    def __unicode__(self):
+        return self.station

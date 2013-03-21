@@ -5,6 +5,10 @@ from wps_processes import *
 import django.shortcuts as dshorts
 from django.template import Context, Template
 from wps.models import Server
+from nlcs.models import Lake, Tributary, WaterQuality, StreamGauge
+
+import multiprocessing, io, requests
+from xml.dom import minidom
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
 
@@ -209,3 +213,87 @@ def outputs(request, filepath):
         return HttpResponse(text, content_type="text/xml")
     else:
         return HttpResponse(callback + "({data:'" + text.replace("\n","") + "'})", content_type="text/javascript")
+        
+def reload(request):
+    s = StreamGauge.objects.all().delete()
+    w = WaterQuality.objects.all().delete()
+    t = Tributary.objects.all().delete()
+    l = Lake.objects.all().delete()
+    def longterm():
+        nutrient = "Nitrogen" # nutrient
+        date_range = '1920-06-10T00:00:00Z/2014-09-15T00:00:00Z' # date
+        us_flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos"
+        can_flow_request = "http://gin-ries1.ircan-rican.org/GinService/sos"
+         # returns value in cfs (cubic feet per second)(00060)
+        f = open(os.path.abspath(os.path.join(template_dir, "../", "supporting_files", 'scenario2_lake_relationships.csv')))
+        csv_lines = f.readlines()
+        f.close()
+        for lake in ["ontario", "erie", "huron", "michigan", "superior"]:
+            l = Lake(name=lake)
+            l.save()
+        for i, line in enumerate(csv_lines):
+            if i > 1:
+                line = line.split(",")
+                try:
+                    t = Tributary(country=line[7].replace('"', ''), name=line[2].replace('"', ''), lake=Lake.objects.get(name=line[5].replace('"', '').lower()))
+                    t.save()
+                except:
+                    pass                
+        for i, line in enumerate(csv_lines):
+            if i > 1:
+                line = line.split(",")
+                lat = float(line[3])
+                lon = float(line[4])
+                name = line[1].replace('"', '')
+                stream_station = line[0].replace('"', '')
+                wq_station = line[6].replace('"', '')
+                if wq_station == '':
+                    wq_station = stream_station
+                tributary = Tributary.objects.get(name=line[2].replace('"', ''))
+                lake = Lake.objects.get(name=line[5].replace('"', '').lower())
+                country=line[7].replace('"', '')
+                has_stream = line[8].replace('"', '')
+                if has_stream == "X":
+                    # Stream Gauge
+                    if country == "CAN":
+                        can_flow_args = {"VERSION":"2.0", "SERVICE":"SOS", "REQUEST":"GetObservation", "featureOfInterest":stream_station, "offering":"WATER_FLOW","observedProperty":"urn:ogc:def:phenomenon:OGC:1.0.30:waterlevel"}
+                        sos_endpoint = can_flow_request
+                        r = requests.get(can_flow_request, params=can_flow_args)
+                        wml = minidom.parseString(r.text)
+                        val, val_times = usgs.parse_sos_GetObservations(wml)
+                        stream_startdate = val_times[0]
+                        stream_enddate = val_times[-1]
+                        wqsos_country_code = "network-all"
+                        wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":wqsos_country_code, "observedProperty":nutrient, "procedure":wq_station}
+                    elif country == "US":
+                        us_flow_args = {"request":"GetObservation", "featureID":stream_station, "offering":"UNIT","observedProperty":"00060","beginPosition":date_range.split("/")[0]}
+                        sos_endpoint = us_flow_request
+                        r = requests.get(us_flow_request, params=us_flow_args)
+                        wml = minidom.parseString(r.text)
+                        val, val_times = usgs.parse_sos_GetObservations(wml)
+                        stream_startdate = val_times[0]
+                        stream_enddate = val_times[-1]
+                        wqsos_country_code = "network-all"
+                        wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":wqsos_country_code, "observedProperty":nutrient, "procedure":"USGS-"+wq_station}
+                    print lat, lon
+                    s = StreamGauge(tributary=tributary, sos_endpoint=sos_endpoint, name=name, startdate=stream_startdate, enddate=stream_enddate, station=stream_station, latitude=lat, longitude=lon, )
+                    s.save()
+                                
+                    # WQ Station
+                    wq_request ="http://sos.chisp1.asascience.com/sos"
+                    r = requests.get(wq_request, params=wq_args)
+                    print r.url
+                    wq_dict = io.csv2dict(r.text)
+                    sample_dates = wq_dict["ActivityStartDate"]
+                    print sample_dates
+                    sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in [sample_dates[0],sample_dates[-1]]]
+                    wq_startdate = sample_dates[0]
+                    wq_enddate = sample_dates[1]
+                    w = WaterQuality(tributary=tributary, sos_endpoint=wq_request, name=name, startdate=wq_startdate, enddate=wq_enddate, station=wq_station)
+                    w.save()
+                    
+    p = multiprocessing.Process(target=longterm)
+    p.daemon = True
+    p.start()
+    return HttpResponse("started daemon to reload the catalog...")
+                        

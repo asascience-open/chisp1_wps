@@ -2,9 +2,11 @@
 
 import urllib2
 import urllib
-"""
+
+
 f = open('CAN_gauge_river_relationships.csv')
 csv_lines = f.readlines()
+f.close()
 for i, line in enumerate(csv_lines):
     if i > 1:
         line = line.split('","')
@@ -23,9 +25,10 @@ for i, line in enumerate(csv_lines):
         req = urllib2.Request(url)
         req = urllib2.urlopen(req)
         print req.read()
-"""
+
 f = open('MilkSourisUSGSgages_Matched_Unmatched.csv')
 csv_lines = f.readlines()
+f.close()
 for i, line in enumerate(csv_lines):
     if i > 1:
         line = line.split('","')
@@ -44,3 +47,4 @@ for i, line in enumerate(csv_lines):
         req = urllib2.Request(url)
         req = urllib2.urlopen(req)
         print req.read()
+

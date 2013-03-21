@@ -11,7 +11,7 @@ import requests
 
 #r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
-outputs_url = Server.objects.all()[0].implementation_site +"/outputs/"
+#outputs_url = Server.objects.all()[0].implementation_site +"/outputs/"
 
 class calc_nutrient_load(process):
     """

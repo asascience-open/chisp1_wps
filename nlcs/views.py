@@ -222,7 +222,7 @@ def reload(request):
     def longterm():
         nutrient = "Nitrogen" # nutrient
         date_range = '1920-06-10T00:00:00Z/2014-09-15T00:00:00Z' # date
-        us_flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos"
+        us_flow_request = "http://webvastage6.er.usgs.gov/ogc-swie/wml2/uv/sos"
         can_flow_request = "http://gin-ries1.ircan-rican.org/GinService/sos"
          # returns value in cfs (cubic feet per second)(00060)
         f = open(os.path.abspath(os.path.join(template_dir, "../", "supporting_files", 'scenario2_lake_relationships.csv')))
@@ -232,19 +232,18 @@ def reload(request):
             l = Lake(name=lake)
             l.save()
         for i, line in enumerate(csv_lines):
-            if i > 1:
+            if i > 0:
                 line = line.split(",")
                 try:
-                    t = Tributary(country=line[7].replace('"', ''), name=line[2].replace('"', ''), lake=Lake.objects.get(name=line[5].replace('"', '').lower()))
+                    t = Tributary(country=line[7].replace('"', ''), name=line[2].replace('"', ''), lake=Lake.objects.get(name=line[5].replace('"', '').lower()), has_stream=False, has_nitrogen=False, has_phosphorus=False)
                     t.save()
                 except:
                     pass                
         for i, line in enumerate(csv_lines):
-            if i > 1:
+            if i > 0:
                 line = line.split(",")
                 print line[3], line[4]
-                lat = float(line[3])
-                lon = float(line[4])
+                
                 name = line[1].replace('"', '')
                 stream_station = line[0].replace('"', '')
                 wq_station = line[6].replace('"', '')
@@ -253,65 +252,106 @@ def reload(request):
                 tributary = Tributary.objects.get(name=line[2].replace('"', ''))
                 lake = Lake.objects.get(name=line[5].replace('"', '').lower())
                 country=line[7].replace('"', '')
-                has_stream = line[8].replace('"', '')
+                has_stream = line[9].replace('"', '')
+                print has_stream
                 if has_stream == "X":
-                    # Stream Gauge
-                    print country, stream_station
-                    try:
-                        if country == "CAN":
-                            can_flow_args = {"VERSION":"2.0", "SERVICE":"SOS", "REQUEST":"GetObservation", "featureOfInterest":stream_station, "offering":"WATER_FLOW","observedProperty":"urn:ogc:def:phenomenon:OGC:1.0.30:waterlevel"}
-                            sos_endpoint = can_flow_request
-                            r = requests.get(can_flow_request, params=can_flow_args)
-                            wml = minidom.parseString(r.text)
-                            val, val_times = usgs.parse_sos_GetObservations(wml)
-                            stream_startdate = val_times[0]
-                            stream_enddate = val_times[-1]
-                            wqsos_country_code = "network-all"
-                            wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":wqsos_country_code, "observedProperty":nutrient, "procedure":wq_station}
-                        elif country == "US":
-                            us_flow_args = {"request":"GetObservation", "featureID":stream_station, "offering":"UNIT","observedProperty":"00060","beginPosition":date_range.split("/")[0]}
-                            sos_endpoint = us_flow_request
-                            r = requests.get(us_flow_request, params=us_flow_args)
-                            print r.url
-                            wml = minidom.parseString(r.text)
-                            val, val_times = usgs.parse_sos_GetObservations(wml)
-                            stream_startdate = val_times[0]
-                            stream_enddate = val_times[-1]
-                            wqsos_country_code = "network-all"
-                            wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":wqsos_country_code, "observedProperty":nutrient, "procedure":"USGS-"+wq_station}
+                    has_stream = True
+                else:
+                    has_stream = False
+                # Stream Gauge
+                print country, stream_station, name, has_stream
+                    
+                if country == "CAN":
+                    wqsos_country_code = "network-all"
+                    wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":wqsos_country_code, "observedProperty":nutrient, "procedure":wq_station}
+                    if has_stream:
+                        lat = float(line[3])
+                        lon = float(line[4])
                         print lat, lon
-                        s = StreamGauge(tributary=tributary, sos_endpoint=sos_endpoint, name=name, startdate=stream_startdate, enddate=stream_enddate, station=stream_station, latitude=lat, longitude=lon, )
-                        s.save()
-                    except:
-                        pass
-                    # WQ Station
-                    wq_request ="http://sos.chisp1.asascience.com/sos"
-                    try:
-                        r = requests.get(wq_request, params=wq_args)
+                        can_flow_args = {"REQUEST":"GetObservation", "VERSION":"2.0.0", "SERVICE":"SOS", "featureOfInterest":"ca.gc.ec.station."+stream_station, "offering":"WATER_FLOW","observedProperty":"urn:ogc:def:phenomenon:OGC:1.0.30:waterflow"}
+                        sos_endpoint = can_flow_request
+                        r = requests.get(can_flow_request, params=can_flow_args)
                         print r.url
-                        wq_dict = io.csv2dict(r.text)
-                        sample_dates = wq_dict["ActivityStartDate"]
-                        #print sample_dates
-                        sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in [sample_dates[0],sample_dates[-1]]]
-                        wq_startdate = sample_dates[0]
-                        wq_enddate = sample_dates[1]
-                        w = WaterQuality(tributary=tributary, sos_endpoint=wq_request, name=name, startdate=wq_startdate, enddate=wq_enddate, station=wq_station)
-                        w.save()
-                    except:
-                        try:
-                            wq_args["observedProperty"] = "Phosphorus"
-                            r = requests.get(wq_request, params=wq_args)
-                            print r.url
-                            wq_dict = io.csv2dict(r.text)
-                            sample_dates = wq_dict["ActivityStartDate"]
-                            #print sample_dates
-                            sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in [sample_dates[0],sample_dates[-1]]]
-                            wq_startdate = sample_dates[0]
-                            wq_enddate = sample_dates[1]
-                            w = WaterQuality(tributary=tributary, sos_endpoint=wq_request, name=name, startdate=wq_startdate, enddate=wq_enddate, station=wq_station)
-                            w.save()     
-                        except:
-                            pass
+                        #try:./stop
+                        wml = minidom.parseString(r.text)
+                        val, val_times = usgs.parse_sos_GetObservationsCAN(wml)
+                        #except:
+                        #    can_flow_args = {"REQUEST":"GetObservation", "VERSION":"2.0.0", "SERVICE":"SOS", "featureOfInterest":"ca.gc.ec.station."+stream_station, "offering":"WATER_FLOW_LIVE","observedProperty":"urn:ogc:def:phenomenon:OGC:1.0.30:waterlevel"}
+                        #    sos_endpoint = can_flow_request
+                        #    r = requests.get(can_flow_request, params=can_flow_args)
+                        #    wml = minidom.parseString(r.text)
+                        #    val, val_times2 = usgs.parse_sos_GetObservations(wml)
+                        stream_startdate = val_times[0]
+                        stream_enddate = val_times[-1]
+                    
+                elif country == "US":
+                    wqsos_country_code = "network-all"
+                    wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":wqsos_country_code, "observedProperty":nutrient, "procedure":"USGS-"+wq_station}
+                    if has_stream:
+                        lat = float(line[3])
+                        lon = float(line[4])
+                        print lat, lon
+                        us_flow_args = {"request":"GetObservation", "featureID":stream_station, "offering":"UNIT","observedProperty":"00060","beginPosition":date_range.split("/")[0]}
+                        sos_endpoint = us_flow_request
+                        r = requests.get(us_flow_request, params=us_flow_args)
+                        print r.url
+                        wml = minidom.parseString(r.text)
+                        val, val_times = usgs.parse_sos_GetObservations(wml)
+                        stream_startdate = val_times[0]
+                        stream_enddate = val_times[-1]
+                if has_stream:
+                    s = StreamGauge(tributary=tributary, sos_endpoint=sos_endpoint, name=name, startdate=stream_startdate, enddate=stream_enddate, station=stream_station, latitude=lat, longitude=lon, )
+                    s.save()
+                    if tributary.has_stream != True:
+                        tributary.has_stream = True
+                        tributary.save()
+                
+                # WQ Station
+                wq_request ="http://sos.chisp1.asascience.com/sos"
+                try:
+                    if country == "CAN":
+                        wq_args["observedProperty"] = "NNTKUR"
+                        wq_args["responseFormat"] = "text/tsv"
+                        delimiter = "    "
+                    else:
+                        delimiter = ","
+                    r = requests.get(wq_request, params=wq_args)
+                    print r.url
+                    wq_dict = io.csv2dict(r.text, delimiter=delimiter)
+                    sample_dates = wq_dict["ActivityStartDate"]
+                    #print sample_dates
+                    sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in [sample_dates[0],sample_dates[-1]]]
+                    wq_startdate = sample_dates[0]
+                    wq_enddate = sample_dates[1]
+                    w = WaterQuality(tributary=tributary, sos_endpoint=wq_request, name=name, startdate=wq_startdate, enddate=wq_enddate, station=wq_station, has_phosphorus=False, has_nitrogen=True)
+                    w.save()
+                    tributary.has_nitrogen = True
+                    tributary.save()
+                except:
+                    pass
+                try:
+                    if country == "US":
+                        wq_args["observedProperty"] = "Phosphorus"
+                    else:
+                        wq_args["observedProperty"] = "PPUT"
+                    r = requests.get(wq_request, params=wq_args)
+                    print r.url
+                    wq_dict = io.csv2dict(r.text, delimiter=delimiter)
+                    sample_dates = wq_dict["ActivityStartDate"]
+                    #print sample_dates
+                    sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in [sample_dates[0],sample_dates[-1]]]
+                    wq_startdate = sample_dates[0]
+                    wq_enddate = sample_dates[1]
+                    wl = WaterQuality.objects.filter(station=wq_station)
+                    if len(wl) == 0:
+                        w = WaterQuality(tributary=tributary, sos_endpoint=wq_request, name=name, startdate=wq_startdate, enddate=wq_enddate, station=wq_station, has_phosphorus=True, has_nitrogen=False)
+                    else:
+                        w.has_phosphorus = True
+                    w.save()
+                    tributary.has_phosphorus = True
+                    tributary.save()     
+                except:
+                    pass
     p = multiprocessing.Process(target=longterm)
     p.daemon = True
     p.start()

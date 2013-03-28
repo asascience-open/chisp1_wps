@@ -9,6 +9,8 @@ from xml.dom import minidom
 import numpy as np
 import requests
 
+from nlcs.models import Lake
+
 #r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
 #outputs_url = Server.objects.all()[0].implementation_site +"/outputs/"
@@ -70,48 +72,61 @@ class calc_nutrient_load(process):
             date_range = '1979-06-10T00:00:00Z/2014-09-15T00:00:00Z' # date
             
             ## Make call to catalog get back station ids (using lake)
-            #catalog command goes here...
-            tributaries = []
-            stations = ['01491000','01491000']
-            lats = [44, 44]
-            lons = [-75, -75.6]
-            loads = [] 
-            
-            for station, lat, lon in zip(stations, lats, lons):
-                ## Call Stream Gauge sos and put response into raw_csv
-                # Get volume flow data:(station, "00060", startdate, enddate)
-                flow_request = "http://nwisvaws02.er.usgs.gov/ogc-swie/wml2/uv/sos"
-                flow_args = {"request":"GetObservation", "featureID":station, "offering":"UNIT","observedProperty":"00060","beginPosition":date_range.split("/")[0]} # returns value in cfs (cubic feet per second)(00060)
-                #print flow_request
-                #url = urllib2.urlopen(flow_request, timeout=120)
-                #raw_stream = url.read()
-                r = requests.get(flow_request, params=flow_args)
-                #print r.url
-                raw_stream = r.text
-                wml = minidom.parseString(raw_stream)
-                val, val_times = usgs.parse_sos_GetObservations(wml)
-                val = np.asarray(val)
-                #http://sos.chisp1.asascience.com/sos?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=1979-06-10T00:00:00Z/2011-09-15T00:00:00Z&offering=network-all&observedProperty=Nitrogen&procedure=USGS-01491000
-                wq_request ="http://localhost:8000/sos"#"http://sos.chisp1.asascience.com/sos"#?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/csv&eventtime=%s&offering=network-all&observedProperty=%s&procedure=%s" % (date_range, nutrient, "USGS-"+station)
-                wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":"network-all", 
-                "observedProperty":nutrient, "procedure":"USGS-"+station}
-                #url = urllib2.urlopen(wq_request, timeout=120)
-                #raw_wq_csv = url.read()
-                r = requests.get(wq_request, params=wq_args)
-                wq_dict = io.csv2dict(r.text)
-                #print wq_dict, r.url
-                sample_dates = wq_dict["ActivityStartDate"]
-                conc = wq_dict["ResultMeasureValue"]
-                sample_dates = [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in sample_dates]
-                
-                val_times = np.asarray(val_times)
-                Q = [val[np.where(np.abs(thistime-val_times)==np.min(np.abs(thistime-val_times)))[0]][0] for thistime in sample_dates] # need to ignore the closest indexes when they are outside of the period that exists for wq records...(or visa-vera)
-
-                thisQ = val[np.where(np.abs(date-val_times)==np.min(np.abs(date-val_times)))[0]][0]
-                sample_dates = np.asarray(sample_dates)
-                thisConc = conc[np.where(np.abs(date-sample_dates)==np.min(np.abs(date-sample_dates)))[0]]
-                loads.append(thisQ * thisConc * 86400 / 0.0353147 / 1000)# load for 1 day in grams
-                #print load["US"][-1]
+            tributaries = Lake.objects.get(name=lake).get_stations(nutrient, date)
+            loads = []
+            lats = []
+            lons = []
+            for tributary in tributaries:
+                country = tributary.country
+                gauges = tributary.streamgauge_set.all()
+                maxq = 0
+                if len(gauges) > 0:
+                    for sg in gauges:
+                        flow_request = sg.sos_endpoint
+                        station = sg.station
+                        if country == "US":
+                            flow_args = {"request":"GetObservation", "featureID":station, "offering":"UNIT","observedProperty":"00060","beginPosition":date_range.split("/")[0]} # returns value in cfs (cubic feet per second)(00060)
+                        elif country == "CAN":
+                            can_flow_args = {"VERSION":"2.0", "SERVICE":"SOS", "REQUEST":"GetObservation", "featureOfInterest":station, "offering":"WATER_FLOW","observedProperty":"urn:ogc:def:phenomenon:OGC:1.0.30:waterlevel"}
+                        r = requests.get(flow_request, params=flow_args)
+                        raw_stream = r.text
+                        wml = minidom.parseString(raw_stream)
+                        if country == "US":
+                            val, val_times = usgs.parse_sos_GetObservations(wml)
+                        elif country == "CAN":
+                            val, val_times = usgs.parse_sos_GetObservationsCAN(wms)
+                        val = np.asarray(val)
+                        val_times = np.asarray(val_times)
+                        ## Find the nearest Q here and for each loop compare to the last to get the maxqthisQ = 
+                        q = val[np.where(np.abs(date-val_times)==np.min(np.abs(date-val_times)))[0]][0]
+                        if q > maxq:
+                          maxq = q
+                          lats.append(sg.latitude)
+                          lons.append(sg.longitude)
+                    conc = []
+                    sample_dates = []
+                    for wq in tributary.waterquality_set.all():
+                        wq_request ="http://localhost:8000/sos"
+                        if country == "US":
+                            wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":"network-all", "observedProperty":nutrient, "procedure":"USGS-"+wq_station}
+                        elif country == "CAN":
+                            wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":"network-all", "observedProperty":nutrient, "procedure":wq_station}
+                        r = requests.get(wq_request, params=wq_args)
+                        wq_dict = io.csv2dict(r.text)
+                        if country == "US":
+                            sample_dates = sample_dates + [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in wq_dict["ActivityStartDate"]]
+                            conc = conc + wq_dict["ResultMeasureValue"]
+                        elif country == "CAN":
+                            sample_dates = sample_dates + [datetime.datetime.strptime(sample_date, "%Y-%m-%dT%H:%M:%S") for sample_date in wq_dict["TIME"]]
+                            conc = conc + wq_dict["RESULT"]
+                    samplegroup = zip(sample_date, conc)
+                    samplegroup.sort()
+                    sample_dates, conc = zip(*samplegroup)
+                    #Q = [val[np.where(np.abs(thistime-val_times)==np.min(np.abs(thistime-val_times)))[0]][0] for thistime in sample_dates] # need to ignore the closest indexes when they are outside of the period that exists for wq records...(or visa-vera)
+                    sample_dates = np.asarray(sample_dates)
+                    thisConc = conc[np.where(np.abs(date-sample_dates)==np.min(np.abs(date-sample_dates)))[0]]
+                    loads.append(maxq * thisConc * 86400 / 0.0353147 / 1000)# load for 1 day in grams
+                    #print load["US"][-1]
                 
             context["progress"] = "Succeeded at " + datetime.datetime.now().__str__()
             context["done"] = True

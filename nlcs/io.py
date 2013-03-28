@@ -1,10 +1,10 @@
 import numpy as np
 import StringIO
 
-def csv2dict(csvtext, headers=1):
+def csv2dict(csvtext, headers=1, delimiter=','):
     import csv
     #print csvtext
-    reader = csv.reader(StringIO.StringIO(csvtext))
+    reader = csv.reader(StringIO.StringIO(csvtext), delimiter=delimiter)
     data = {}
     rownum = 0
     for row in reader:

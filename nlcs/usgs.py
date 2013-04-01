@@ -5,9 +5,9 @@ def parse_sos_GetObservations(xml):
     timestamp = []
     value = []
 
-    parameter_nm = str(xml.getElementsByTagName("om:observedProperty")[0].attributes["xlink:title"].value)
-    units = str(xml.getElementsByTagName("wml2:uom")[0].attributes["code"].value)
-    name = str(xml.getElementsByTagName("gml:name")[0].firstChild.nodeValue)
+    #parameter_nm = str(xml.getElementsByTagName("om:observedProperty")[0].attributes["xlink:title"].value)
+    #units = str(xml.getElementsByTagName("wml2:uom")[0].attributes["code"].value)
+    #name = str(xml.getElementsByTagName("gml:name")[0].firstChild.nodeValue)
 
     length = xml.getElementsByTagName("wml2:value").length
     value = [i.firstChild.nodeValue for i in xml.getElementsByTagName("wml2:value")]

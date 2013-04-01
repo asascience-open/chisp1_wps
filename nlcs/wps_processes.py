@@ -117,7 +117,7 @@ class calc_nutrient_load(process):
                             sample_dates = sample_dates + [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in wq_dict["ActivityStartDate"]]
                             conc = conc + wq_dict["ResultMeasureValue"]
                         elif country == "CAN":
-                            sample_dates = sample_dates + [datetime.datetime.strptime(sample_date, "%Y-%m-%dT%H:%M:%S") for sample_date in wq_dict["TIME"]]
+                            sample_dates = sample_dates + [datetime.datetime.strptime(sample_date, "%Y-%m-%dT%H:%M:%S") for sample_date in wq_dict["DATE"]]
                             conc = conc + wq_dict["RESULT"]
                     samplegroup = zip(sample_date, conc)
                     samplegroup.sort()

@@ -1,19 +1,17 @@
-import os, sys, datetime, multiprocessing, uuid, io, usgs, gevent
+import os, sys, datetime, multiprocessing, uuid, io, usgs, gevent, nlcs_model
 from process import process
 from wps.models import Server
 import xml.etree.ElementTree as et
 from django.template import Context, Template
 from django.http import HttpResponse
-#import rpy2.robjects as robjects
 from xml.dom import minidom
 import numpy as np
 import requests
 
 from nlcs.models import Lake
 
-#r = robjects.r
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../", "templates"))
-#outputs_url = Server.objects.all()[0].implementation_site +"/outputs/"
+outputs_url = Server.objects.all()[0].implementation_site +"/outputs/"
 
 class calc_nutrient_load(process):
     """
@@ -46,6 +44,12 @@ class calc_nutrient_load(process):
                 "literal":True,
                 "datatype":"string",
                 "reference":""},
+                {"identifier":"duration",
+                "abstract":"The duration for the calculation",
+                "title":"Duration to perform calculation over",
+                "literal":True,
+                "datatype":"string",
+                "reference":""},
              ]
     outputs = [
                 {"identifier":"nlcs_output",
@@ -60,74 +64,17 @@ class calc_nutrient_load(process):
         # Do nothing here
         pass
 
-    def execute(self, lake, date, nutrient, **kwargs):
+    def execute(self, lake, date, nutrient, duration, **kwargs):
         date = datetime.datetime.strptime(date, "%Y-%m-%d")
-        def longterm(lake, date, nutrient, status_location, template, context, **kwargs):         
+        def longterm(lake, date, nutrient, duration, status_location, template, context, **kwargs):         
             ## Inputs
-            if nutrient.lower() == "nitrogen":
-                nutrient = "Nitrogen" # nutrient
-            elif nutrient.lower() == "phosphorus":
-                nutrient = "Phosphorus" # case sensitive
-            lake = 'ontario' # lake
-            date_range = '1979-06-10T00:00:00Z/2014-09-15T00:00:00Z' # date
+            parameter = nutrient.lower()
+            lake = lake.lower() # lake
             
-            ## Make call to catalog get back station ids (using lake)
-            tributaries = Lake.objects.get(name=lake).get_stations(nutrient, date)
-            loads = []
-            lats = []
-            lons = []
-            for tributary in tributaries:
-                country = tributary.country
-                gauges = tributary.streamgauge_set.all()
-                maxq = 0
-                if len(gauges) > 0:
-                    for sg in gauges:
-                        flow_request = sg.sos_endpoint
-                        station = sg.station
-                        if country == "US":
-                            flow_args = {"request":"GetObservation", "featureID":station, "offering":"UNIT","observedProperty":"00060","beginPosition":date_range.split("/")[0]} # returns value in cfs (cubic feet per second)(00060)
-                        elif country == "CAN":
-                            can_flow_args = {"VERSION":"2.0", "SERVICE":"SOS", "REQUEST":"GetObservation", "featureOfInterest":station, "offering":"WATER_FLOW","observedProperty":"urn:ogc:def:phenomenon:OGC:1.0.30:waterlevel"}
-                        r = requests.get(flow_request, params=flow_args)
-                        raw_stream = r.text
-                        wml = minidom.parseString(raw_stream)
-                        if country == "US":
-                            val, val_times = usgs.parse_sos_GetObservations(wml)
-                        elif country == "CAN":
-                            val, val_times = usgs.parse_sos_GetObservationsCAN(wms)
-                        val = np.asarray(val)
-                        val_times = np.asarray(val_times)
-                        ## Find the nearest Q here and for each loop compare to the last to get the maxqthisQ = 
-                        q = val[np.where(np.abs(date-val_times)==np.min(np.abs(date-val_times)))[0]][0]
-                        if q > maxq:
-                          maxq = q
-                          lats.append(sg.latitude)
-                          lons.append(sg.longitude)
-                    conc = []
-                    sample_dates = []
-                    for wq in tributary.waterquality_set.all():
-                        wq_request ="http://localhost:8000/sos"
-                        if country == "US":
-                            wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":"network-all", "observedProperty":nutrient, "procedure":"USGS-"+wq_station}
-                        elif country == "CAN":
-                            wq_args = {"service":"SOS", "request":"GetObservation", "version":"1.0.0", "responseformat":"text/csv", "eventtime":date_range, "offering":"network-all", "observedProperty":nutrient, "procedure":wq_station}
-                        r = requests.get(wq_request, params=wq_args)
-                        wq_dict = io.csv2dict(r.text)
-                        if country == "US":
-                            sample_dates = sample_dates + [datetime.datetime.strptime(sample_date, "%Y-%m-%d") for sample_date in wq_dict["ActivityStartDate"]]
-                            conc = conc + wq_dict["ResultMeasureValue"]
-                        elif country == "CAN":
-                            sample_dates = sample_dates + [datetime.datetime.strptime(sample_date, "%Y-%m-%dT%H:%M:%S") for sample_date in wq_dict["DATE"]]
-                            conc = conc + wq_dict["RESULT"]
-                    samplegroup = zip(sample_date, conc)
-                    samplegroup.sort()
-                    sample_dates, conc = zip(*samplegroup)
-                    #Q = [val[np.where(np.abs(thistime-val_times)==np.min(np.abs(thistime-val_times)))[0]][0] for thistime in sample_dates] # need to ignore the closest indexes when they are outside of the period that exists for wq records...(or visa-vera)
-                    sample_dates = np.asarray(sample_dates)
-                    thisConc = conc[np.where(np.abs(date-sample_dates)==np.min(np.abs(date-sample_dates)))[0]]
-                    loads.append(maxq * thisConc * 86400 / 0.0353147 / 1000)# load for 1 day in grams
-                    #print load["US"][-1]
-                
+            ## Run Model
+            loads = nlcs_model.run(lake, parameter, date, duration)
+            
+            ## Write Results out to status xml
             context["progress"] = "Succeeded at " + datetime.datetime.now().__str__()
             context["done"] = True
             context["totalload"] = np.asarray(loads).sum()
@@ -166,11 +113,11 @@ class calc_nutrient_load(process):
         f.close()
 
         ##Call longterm
-        
         p = multiprocessing.Process(target=longterm,
                                     args=(lake,
                                           date,
                                           nutrient,
+                                          duration, 
                                           status_location,
                                           text,
                                           context_dict)

@@ -241,7 +241,7 @@ def reload(request):
         #        except:
         #            pass                
         for i, line in enumerate(csv_lines):
-            if i > 377:
+            if i > 473:
                 line = line.split(",")
                 print line[3], line[4]
                 

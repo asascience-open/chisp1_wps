@@ -27,7 +27,7 @@ def test():
 
 def deploy():
     clean()
-    test()
+    #test()
     prepare_deploy()
     #with run('source venvs/chisp/bin/activate'):
     env.activate = 'source /home/chisp/envs/standard/bin/activate'

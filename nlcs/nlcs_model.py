@@ -1,10 +1,11 @@
 import numpy as np
 import scipy.interpolate as interpolate
+from scipy import interp as sciinterp
 import sys, os, datetime, multiprocessing, io, requests, usgs, calendar
 from xml.dom import minidom
 from nlcs.models import Lake
 
-timeout = 25
+timeout = 60
 date_range = '1920-06-10T00:00:00Z/2014-09-15T00:00:00Z'
 
 '''
@@ -15,6 +16,7 @@ def run(lake, parameter, date, duration):
     lake_loads = []
     latitudes = []
     longitudes = []
+    names = []
     for tributary in tribs: # possibly thread or multiprocess?
         country = tributary.country
         gauges = tributary.streamgauge_set.all()
@@ -24,41 +26,66 @@ def run(lake, parameter, date, duration):
         
         trib_wq_data = union(wq_timeseries_dicts)
         trib_flow_data, lat, lon = max(flow_timeseries_dicts, gauges)
-        latitudes.append(lat)
-        longitudes.append(lon)
         
         trib_time_data, trib_wq_data, trib_flow_data = interp(trib_wq_data, trib_flow_data, date, duration)
-        trib_flux_data = compute_flux_series(trib_wq_data, trib_flow_data, country)
-        lake_loads.append(compute_load(trib_flux_data))
-    return lake_loads, latitudes, longitudes
+        if trib_time_data != None:
+            latitudes.append(lat)
+            longitudes.append(lon)
+            trib_flux_data = compute_flux_series(trib_wq_data, trib_flow_data, country)
+            lake_loads.append(compute_load(trib_flux_data))
+            names.append(tributary.name)
+    return lake_loads, latitudes, longitudes, names
         
 
 '''
 Functions to perform timeseries manipulation
 '''
+def extrap1d(interpolator):
+    xs = interpolator.x
+    ys = interpolator.y
+
+    def pointwise(x):
+        if x < xs[0]:
+            return ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])
+        elif x > xs[-1]:
+            return ys[-1]+(x-xs[-1])*(ys[-1]-ys[-2])/(xs[-1]-xs[-2])
+        else:
+            return interpolator(x)
+
+    def ufunclike(xs):
+        return array(map(pointwise, array(xs)))
+
+    return ufunclike
+    
 def interp(wq, flow, date, duration):
-    wq_times = [i.toordinal() for i in wq["time"]]
-    wq_vals = wq["value"]
-    flow_vals = flow["value"]
-    flow_times = [i.toordinal() for i in flow["time"]]
-    if duration.lower() == "year":
-        startdate = datetime.date(date.year, 1, 1)
-        enddate = datetime.date(date.year, 12, 31)
-        intrptime = np.arange(startdate, enddate+1, 1)
-    elif duration.lower() == "month":
-        numdays = calendar.monthrange(date.year, date.month)[1]
-        startdate = datetime.date(date.year, date.month, 1).toordinal()
-        enddate = datetime.date(date.year, date.month, numdays).toordinal()
-        intrptime = np.arange(startdate, enddate+1, 1)
-    elif duration.lower() == "day":
-        intrptime = date.toordinal()
-    try:
-        intrpwq = interpolate.barycentric_interpolate(wq_times, wq_vals, x=intrptime)
-        intrpflow = interpolate.barycentric_interpolate(flow_times, flow_vals, x=intrptime)
-    except:
-        print wq_times, wq_vals
-        #print flow_times, flow_vals
-    return intrptime, intrpwq, intrpflow
+    if flow["value"] != None:
+        wq_times = [i.toordinal() for i in wq["time"]]
+        wq_vals = wq["value"]
+        flow_vals = flow["value"]
+        flow_times = [i.toordinal() for i in flow["time"]]
+        if duration.lower() == "year":
+            startdate = datetime.date(date.year, 1, 1)
+            enddate = datetime.date(date.year, 12, 31)
+            intrptime = np.arange(startdate, enddate+1, 1)
+        elif duration.lower() == "month":
+            numdays = calendar.monthrange(date.year, date.month)[1]
+            startdate = datetime.date(date.year, date.month, 1).toordinal()
+            enddate = datetime.date(date.year, date.month, numdays).toordinal()
+            intrptime = np.arange(startdate, enddate+1, 1)
+        elif duration.lower() == "day":
+            intrptime = date.toordinal()
+        try:
+            intrpwq = sciinterp(intrptime, wq_times, wq_vals)#interpolate.InterpolatedUnivariateSpline(wq_times, wq_vals, k=12)#interpolate.barycentric_interpolate(wq_times, wq_vals, x=intrptime)
+            #intrpwq = intrpwq(intrptime)
+            intrpflow = sciinterp(intrptime, flow_times, flow_vals)#interpolate.InterpolatedUnivariateSpline(flow_times, flow_vals, k=12)#interpolate.barycentric_interpolate(flow_times, flow_vals, x=intrptime)
+            #intrpflow = intrpflow(intrptime)
+        except:
+            print wq_times, wq_vals
+            #print flow_times, flow_vals
+        print intrpwq, intrpflow
+        return intrptime, intrpwq, intrpflow
+    else:
+        return None, None, None
     
 def compute_flux_series(wqvalues, flowvalues, country):
     #unit conversion here, both wq concentrations should be in mg/L already
@@ -70,8 +97,11 @@ def compute_flux_series(wqvalues, flowvalues, country):
     
 def compute_load(flux):
     # Outputs total kg over duration
-    return flux.sum() #numerical integration of flux (or just (dayvalue*day) + (dayvalue*day) ... for duration i.e. reimann sum)
-    
+    try:
+        return flux.sum() #numerical integration of flux (or just (dayvalue*day) + (dayvalue*day) ... for duration i.e. reimann sum)
+    except:
+        return flux
+        
 def total_load(list_of_loads):
     return np.sum(np.asarray(list_of_loads))
     
@@ -118,10 +148,11 @@ def get_streamflow(country, stationid):
         if country == "CAN":
             val, val_times = usgs.parse_sos_GetObservationsCAN(wml) 
         elif country == "US":
-            val, val_times = usgs.parse_sos_GetObservations(wml) 
+            val, val_times = usgs.parse_sos_GetObservations(wml)
     except:
         try:
-            r = requests.get(sos_endpoint, params=flow_args, timeout=timeout)
+            print sos_endpoint, flow_args
+            r = requests.get(sos_endpoint, params=flow_args, timeout=timeout*3)
             wml = minidom.parseString(r.text)
             if country == "CAN":
                 val, val_times = usgs.parse_sos_GetObservationsCAN(wml) 
@@ -129,6 +160,7 @@ def get_streamflow(country, stationid):
                 val, val_times = usgs.parse_sos_GetObservations(wml)
         except:
             val, val_times = None, None
+            print sos_endpoint, flow_args, r.url
     return {"value":val, "time":val_times}
     
 def get_waterquality(country, stationid, parameter):

@@ -1,4 +1,4 @@
-import os, sys, datetime, multiprocessing, uuid, io, usgs, gevent, nlcs_model
+import os, sys, datetime, multiprocessing, uuid, io, usgs, gevent, nlcs_model, time
 from process import process
 from wps.models import Server
 import xml.etree.ElementTree as et
@@ -72,7 +72,10 @@ class calc_nutrient_load(process):
             lake = lake.lower() # lake
             
             ## Run Model
-            loads = nlcs_model.run(lake, parameter, date, duration)
+            t1 = time.time()
+            loads, lats, lons, tribs = nlcs_model.run(lake, parameter, date, duration)
+            t2 = time.time()
+            print "Took %5.5f minutes" % ((t2-t1 ) / 60,)
             
             ## Write Results out to status xml
             context["progress"] = "Succeeded at " + datetime.datetime.now().__str__()
@@ -80,8 +83,8 @@ class calc_nutrient_load(process):
             context["totalload"] = np.asarray(loads).sum()
             context["lake"] = lake
             context["tributaries"] = []
-            for load, lat, lon in zip(loads, lats, lons):
-                context["tributaries"].append({"name":"My Test Tributary", "lat":lat, "lon":lon, "load":load,"percent":load/context["totalload"]})
+            for load, lat, lon, name in zip(loads, lats, lons, tribs):
+                context["tributaries"].append({"name":name, "lat":lat, "lon":lon, "load":load,"percent":load/context["totalload"]})
             context = Context(context)
             f = open(os.path.abspath(os.path.join(template_dir, "../", "outputs", status_location)), "w")
             f.write(Template(template).render(context))

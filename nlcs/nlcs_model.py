@@ -154,7 +154,7 @@ def get_streamflow(country, stationid, date):
     except:
         try:
             print sos_endpoint, flow_args
-            r = requests.get(sos_endpoint, params=flow_args, timeout=timeout*3)
+            r = requests.get(sos_endpoint, params=flow_args, timeout=timeout)
             wml = minidom.parseString(r.text)
             if country == "CAN":
                 val, val_times = usgs.parse_sos_GetObservationsCAN(wml) 

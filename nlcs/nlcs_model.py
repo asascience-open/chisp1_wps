@@ -92,7 +92,7 @@ def compute_flux_series(wqvalues, flowvalues, country):
     if country.lower() == "CAN":
         pass 
     elif country.lower() == "US":
-        flowvalues = flowvalues * 24465.72 # convert from cfs to m^3/day
+        flowvalues = flowvalues / 2446.572 # convert from cfs to m^3/day
     return wqvalues * flowvalues / 1000 # should end up with kg/day
     
 def compute_load(flux):
@@ -140,6 +140,7 @@ def get_streamflow(country, stationid, date):
                         "observedProperty":"00060",
                         "beginPosition":date.isoformat().replace(str(date.year), str(date.year-1)),
                         "endPosition":date.isoformat().replace(str(date.year), str(date.year+1)),
+                        "offering":"Mean",
                         }
         sos_endpoint = us_flow_request
     try:
@@ -184,7 +185,8 @@ def get_waterquality(country, stationid, parameter):
         valuefield = "RESULT"
     elif country == "US":
         wq_args["procedure"] = "USGS-"+stationid 
-        delimiter = ","
+        #wq_args["responseFormat"] = "text/tsv"
+        delimiter = ','
         timefield = "ActivityStartDate"
         timefmt = "%Y-%m-%d"
         valuefield = "ResultMeasureValue"
@@ -194,6 +196,8 @@ def get_waterquality(country, stationid, parameter):
     wq_dict = io.csv2dict(r.text, delimiter=delimiter)  
     sample_dates = wq_dict[timefield]
     sample_dates = [datetime.datetime.strptime(sample_date, timefmt) for sample_date in sample_dates]
+    #if country == "US":
+    #    print wq_dict[valuefield]
     return {"time":sample_dates, "value":wq_dict[valuefield]}
     
 def union(wq_dicts):
@@ -205,22 +209,28 @@ def union(wq_dicts):
     samplegroup = zip(times, concs)
     samplegroup.sort()
     times, concs = zip(*samplegroup)
+    emptyi = []
     for i,v in enumerate(concs[0]):
         if v == '':
-            concs[0][i] = float('nan')
+            emptyi.append(i)
+    for ind in sorted(emptyi, reverse=True):
+        del concs[0][ind], times[0][ind]
     return {"time":times[0], "value":concs[0]}
     
 def max(flow_dicts, gauges):
     means = []
-    for flow in flow_dicts:
-        try:
-            means.append(np.asarray(flow["value"]).mean())
-        except:
-            means.append(0)
-    means = np.asarray(means)# find max at each timestep...?, also return the def. lat/lon pair for this trib
-    gauges = list(gauges)
-    return flow_dicts[np.where(means == means.max())[0]], gauges[np.where(means == means.max())[0]].latitude, gauges[np.where(means == means.max())[0]].longitude
-        
+    try:
+        for flow in flow_dicts:
+            try:
+                means.append(np.asarray(flow["value"]).mean())
+            except:
+                means.append(0)
+        means = np.asarray(means)# find max at each timestep...?, also return the def. lat/lon pair for this trib
+        gauges = list(gauges)
+        return flow_dicts[np.where(means == means.max())[0]], gauges[np.where(means == means.max())[0]].latitude, gauges[np.where(means == means.max())[0]].longitude
+    except:
+        return {"value":None, "time":None}, None, None
+
 def tribs_from_lake(lake, parameter, date):
     lake = lake.lower()
     tributaries = Lake.objects.get(name=lake).get_stations(parameter, date) #Perform database query here, possibly add time conditions here?

@@ -21,7 +21,7 @@ def run(lake, parameter, date, duration):
         country = tributary.country
         gauges = tributary.streamgauge_set.all()
         
-        flow_timeseries_dicts = [get_streamflow(country, gauge.station) for gauge in gauges]
+        flow_timeseries_dicts = [get_streamflow(country, gauge.station, date) for gauge in gauges]
         wq_timeseries_dicts = [get_waterquality(country, wq.station, parameter) for wq in tributary.waterquality_set.all()]
         
         trib_wq_data = union(wq_timeseries_dicts)
@@ -121,7 +121,7 @@ def get_property(parameter, country):
             parameter = "Phosphorus"
     return parameter
             
-def get_streamflow(country, stationid):
+def get_streamflow(country, stationid, date):
     us_flow_request = "http://webvastage6.er.usgs.gov/ogc-swie/wml2/uv/sos"
     can_flow_request = "http://ngwd-bdnes.cits.nrcan.gc.ca/GinService/sos"
     # can data have to query both live and hist
@@ -138,7 +138,8 @@ def get_streamflow(country, stationid):
                         "featureID":stationid, 
                         "offering":"UNIT",
                         "observedProperty":"00060",
-                        "beginPosition":date_range.split("/")[0],
+                        "beginPosition":date.isoformat().replace(str(date.year), str(date.year-1)),
+                        "endPosition":date.isoformat().replace(str(date.year), str(date.year+1)),
                         }
         sos_endpoint = us_flow_request
     try:

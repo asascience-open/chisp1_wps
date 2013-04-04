@@ -161,7 +161,7 @@ def get_streamflow(country, stationid, date):
                 val, val_times = usgs.parse_sos_GetObservations(wml)
         except:
             val, val_times = None, None
-            print sos_endpoint, flow_args, r.url
+            #print sos_endpoint, flow_args, r.url
     return {"value":val, "time":val_times}
     
 def get_waterquality(country, stationid, parameter):

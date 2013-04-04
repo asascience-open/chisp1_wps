@@ -164,8 +164,8 @@ def get_streamflow(country, stationid):
     return {"value":val, "time":val_times}
     
 def get_waterquality(country, stationid, parameter):
-    wq_request ="http://sos.chisp1.asascience.com/sos"
-    #wq_request ="http://localhost:8000/sos"
+    #wq_request ="http://sos.chisp1.asascience.com/sos"
+    wq_request ="http://localhost:8000/sos"
     wqsos_country_code = "network-all"
     wq_args = {"service":"SOS", 
                 "request":"GetObservation", 

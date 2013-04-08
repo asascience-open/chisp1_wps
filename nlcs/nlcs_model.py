@@ -64,8 +64,8 @@ def interp(wq, flow, date, duration):
         flow_vals = flow["value"]
         flow_times = [i.toordinal() for i in flow["time"]]
         if duration.lower() == "year":
-            startdate = datetime.date(date.year, 1, 1)
-            enddate = datetime.date(date.year, 12, 31)
+            startdate = datetime.date(date.year, 1, 1).toordinal()
+            enddate = datetime.date(date.year, 12, 31).toordinal()
             intrptime = np.arange(startdate, enddate+1, 1)
         elif duration.lower() == "month":
             numdays = calendar.monthrange(date.year, date.month)[1]
@@ -82,6 +82,7 @@ def interp(wq, flow, date, duration):
         except:
             print wq_times, wq_vals
             #print flow_times, flow_vals
+            intrpwq, intrpflow, intrptime = None, None, None
         print intrpwq, intrpflow
         return intrptime, intrpwq, intrpflow
     else:
@@ -191,11 +192,18 @@ def get_waterquality(country, stationid, parameter):
         timefmt = "%Y-%m-%d"
         valuefield = "ResultMeasureValue"
     wq_args["observedProperty"] = get_property(parameter, country)
-    r = requests.get(wq_request, params=wq_args, timeout=timeout)
-    print r.url
-    wq_dict = io.csv2dict(r.text, delimiter=delimiter)  
-    sample_dates = wq_dict[timefield]
-    sample_dates = [datetime.datetime.strptime(sample_date, timefmt) for sample_date in sample_dates]
+    try:
+        r = requests.get(wq_request, params=wq_args, timeout=timeout)
+        print r.url
+        wq_dict = io.csv2dict(r.text, delimiter=delimiter)  
+        sample_dates = wq_dict[timefield]
+        sample_dates = [datetime.datetime.strptime(sample_date, timefmt) for sample_date in sample_dates]
+    except:
+        requests.get(wq_request, params=wq_args, timeout=timeout)
+        print r.url
+        wq_dict = io.csv2dict(r.text, delimiter=delimiter)  
+        sample_dates = wq_dict[timefield]
+        sample_dates = [datetime.datetime.strptime(sample_date, timefmt) for sample_date in sample_dates]
     #if country == "US":
     #    print wq_dict[valuefield]
     return {"time":sample_dates, "value":wq_dict[valuefield]}

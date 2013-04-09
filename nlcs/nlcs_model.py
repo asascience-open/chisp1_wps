@@ -90,9 +90,9 @@ def interp(wq, flow, date, duration):
     
 def compute_flux_series(wqvalues, flowvalues, country):
     #unit conversion here, both wq concentrations should be in mg/L already
-    if country.lower() == "CAN":
-        pass 
-    elif country.lower() == "US":
+    if country == "CAN":
+        flowvalues = flowvalues * 24 * 3600
+    elif country == "US":
         flowvalues = flowvalues / 2446.572 # convert from cfs to m^3/day
     return wqvalues * flowvalues / 1000 # should end up with kg/day
     

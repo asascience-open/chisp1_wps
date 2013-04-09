@@ -93,7 +93,7 @@ def compute_flux_series(wqvalues, flowvalues, country):
     if country == "CAN":
         flowvalues = flowvalues * 24 * 3600
     elif country == "US":
-        flowvalues = flowvalues / 2446.572 # convert from cfs to m^3/day
+        flowvalues = flowvalues * 2446.572 # convert from cfs to m^3/day
     return wqvalues * flowvalues / 1000 # should end up with kg/day
     
 def compute_load(flux):

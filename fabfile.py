@@ -43,7 +43,7 @@ def deploy():
 
 def clonenew():
     clean()
-    test()
+    #test()
     prepare_deploy()
     #with run('source venvs/chisp/bin/activate'):
     env.activate = 'source /home/chisp/envs/standard/bin/activate'

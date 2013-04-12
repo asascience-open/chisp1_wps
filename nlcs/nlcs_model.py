@@ -18,13 +18,25 @@ def run(lake, parameter, date, duration):
     longitudes = []
     names = []
     for tributary in tribs: # possibly thread or multiprocess?
+        print tributary.name
         country = tributary.country
         gauges = tributary.streamgauge_set.all()
         
         flow_timeseries_dicts = [get_streamflow(country, gauge.station, date) for gauge in gauges]
         wq_timeseries_dicts = [get_waterquality(country, wq.station, parameter) for wq in tributary.waterquality_set.all()]
         
-        trib_wq_data = union(wq_timeseries_dicts)
+        #trib_wq_data = union(wq_timeseries_dicts)
+        means = []
+        #try:
+        for wq in wq_timeseries_dicts:
+            try:
+                means.append(np.asarray(wq["value"]).mean())
+            except:
+                means.append(0)
+        means = np.asarray(means)
+        trib_wq_data = wq_timeseries_dicts[np.where(means == means.max())[0]]
+        #except:
+        #    pass
         trib_flow_data, lat, lon = max(flow_timeseries_dicts, gauges)
         
         trib_time_data, trib_wq_data, trib_flow_data = interp(trib_wq_data, trib_flow_data, date, duration)
@@ -75,6 +87,7 @@ def interp(wq, flow, date, duration):
         elif duration.lower() == "day":
             intrptime = date.toordinal()
         try:
+            print wq_vals, wq_times
             intrpwq = sciinterp(intrptime, wq_times, wq_vals)#interpolate.InterpolatedUnivariateSpline(wq_times, wq_vals, k=12)#interpolate.barycentric_interpolate(wq_times, wq_vals, x=intrptime)
             #intrpwq = intrpwq(intrptime)
             intrpflow = sciinterp(intrptime, flow_times, flow_vals)#interpolate.InterpolatedUnivariateSpline(flow_times, flow_vals, k=12)#interpolate.barycentric_interpolate(flow_times, flow_vals, x=intrptime)
@@ -167,8 +180,8 @@ def get_streamflow(country, stationid, date):
     return {"value":val, "time":val_times}
     
 def get_waterquality(country, stationid, parameter):
-    #wq_request ="http://sos.chisp1.asascience.com/sos"
-    wq_request ="http://localhost:8000/sos"
+    wq_request ="http://sos.chisp1.asascience.com/sos"
+    #wq_request ="http://localhost:8000/sos"
     wqsos_country_code = "network-all"
     wq_args = {"service":"SOS", 
                 "request":"GetObservation", 

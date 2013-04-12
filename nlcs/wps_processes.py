@@ -45,7 +45,7 @@ class calc_nutrient_load(process):
                 "datatype":"string",
                 "reference":""},
                 {"identifier":"duration",
-                "abstract":"The duration for the calculation",
+                "abstract":"The duration for the calculation choose from 'year', 'month' or 'day'",
                 "title":"Duration to perform calculation over",
                 "literal":True,
                 "datatype":"string",

@@ -25,16 +25,16 @@ def run(lake, parameter, date, duration):
         flow_timeseries_dicts = [get_streamflow(country, gauge.station, date) for gauge in gauges]
         wq_timeseries_dicts = [get_waterquality(country, wq.station, parameter) for wq in tributary.waterquality_set.all()]
         
-        #trib_wq_data = union(wq_timeseries_dicts)
-        means = []
+        trib_wq_data = union(wq_timeseries_dicts)
+        #means = []
         #try:
-        for wq in wq_timeseries_dicts:
-            try:
-                means.append(np.asarray(wq["value"]).mean())
-            except:
-                means.append(0)
-        means = np.asarray(means)
-        trib_wq_data = wq_timeseries_dicts[np.where(means == means.max())[0]]
+        #for wq in wq_timeseries_dicts:
+        #    try:
+        #        means.append(np.asarray(wq["value"]).mean())
+        #    except:
+        #        means.append(0)
+        #means = np.asarray(means)
+        #trib_wq_data = wq_timeseries_dicts[np.where(means == means.max())[0]]
         #except:
         #    pass
         trib_flow_data, lat, lon = max(flow_timeseries_dicts, gauges)
@@ -87,16 +87,16 @@ def interp(wq, flow, date, duration):
         elif duration.lower() == "day":
             intrptime = date.toordinal()
         try:
-            print wq_vals, wq_times
+            print wq_vals, flow_vals
             intrpwq = sciinterp(intrptime, wq_times, wq_vals)#interpolate.InterpolatedUnivariateSpline(wq_times, wq_vals, k=12)#interpolate.barycentric_interpolate(wq_times, wq_vals, x=intrptime)
             #intrpwq = intrpwq(intrptime)
             intrpflow = sciinterp(intrptime, flow_times, flow_vals)#interpolate.InterpolatedUnivariateSpline(flow_times, flow_vals, k=12)#interpolate.barycentric_interpolate(flow_times, flow_vals, x=intrptime)
             #intrpflow = intrpflow(intrptime)
         except:
-            print wq_times, wq_vals
+            #print wq_times, wq_vals
             #print flow_times, flow_vals
             intrpwq, intrpflow, intrptime = None, None, None
-        print intrpwq, intrpflow
+        #print intrpwq, intrpflow
         return intrptime, intrpwq, intrpflow
     else:
         return None, None, None
@@ -104,10 +104,10 @@ def interp(wq, flow, date, duration):
 def compute_flux_series(wqvalues, flowvalues, country):
     #unit conversion here, both wq concentrations should be in mg/L already
     if country == "CAN":
-        flowvalues = flowvalues * 24 * 3600
+        flowvalues = flowvalues * 24. * 3600.
     elif country == "US":
         flowvalues = flowvalues * 2446.572 # convert from cfs to m^3/day
-    return wqvalues * flowvalues / 1000 # should end up with kg/day
+    return wqvalues * flowvalues / 1000. # should end up with kg/day
     
 def compute_load(flux):
     # Outputs total kg over duration
@@ -243,7 +243,10 @@ def max(flow_dicts, gauges):
     try:
         for flow in flow_dicts:
             try:
-                means.append(np.asarray(flow["value"]).mean())
+                if len(flow["value"]) > 0:
+                    means.append(np.asarray(flow["value"]).mean())
+                else:
+                    means.append(0)
             except:
                 means.append(0)
         means = np.asarray(means)# find max at each timestep...?, also return the def. lat/lon pair for this trib

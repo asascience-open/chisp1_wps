@@ -25,17 +25,17 @@ def run(lake, parameter, date, duration):
         flow_timeseries_dicts = [get_streamflow(country, gauge.station, date) for gauge in gauges]
         wq_timeseries_dicts = [get_waterquality(country, wq.station, parameter) for wq in tributary.waterquality_set.all()]
         
-        trib_wq_data = union(wq_timeseries_dicts)
-        #means = []
+        #trib_wq_data = union(wq_timeseries_dicts)
+        means = []
         #try:
-        #for wq in wq_timeseries_dicts:
-        #    try:
-        #        means.append(np.asarray(wq["value"]).mean())
-        #    except:
-        #        means.append(0)
-        #means = np.asarray(means)
-        #trib_wq_data = wq_timeseries_dicts[np.where(means == means.max())[0]]
-        #trib_wq_data = union([trib_wq_data])
+        for wq in wq_timeseries_dicts:
+            try:
+                means.append(np.asarray(wq["value"]).mean())
+            except:
+                means.append(0)
+        means = np.asarray(means)
+        trib_wq_data = wq_timeseries_dicts[np.where(means == means.max())[0]]
+        trib_wq_data = union([trib_wq_data])
         #except:
         #    pass
         trib_flow_data, lat, lon = max(flow_timeseries_dicts, gauges)
@@ -252,6 +252,7 @@ def max(flow_dicts, gauges):
                 means.append(0)
         means = np.asarray(means)# find max at each timestep...?, also return the def. lat/lon pair for this trib
         gauges = list(gauges)
+        print gauges[np.where(means == means.max())[0]].name
         return flow_dicts[np.where(means == means.max())[0]], gauges[np.where(means == means.max())[0]].latitude, gauges[np.where(means == means.max())[0]].longitude
     except:
         return {"value":None, "time":None}, None, None

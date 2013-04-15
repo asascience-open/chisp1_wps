@@ -35,7 +35,6 @@ def run(lake, parameter, date, duration):
                 means.append(0)
         means = np.asarray(means)
         trib_wq_data = wq_timeseries_dicts[np.where(means == means.max())[0]]
-        trib_wq_data = union([trib_wq_data])
         #except:
         #    pass
         trib_flow_data, lat, lon = max(flow_timeseries_dicts, gauges)
@@ -88,16 +87,16 @@ def interp(wq, flow, date, duration):
         elif duration.lower() == "day":
             intrptime = date.toordinal()
         try:
-            print wq_vals, flow_vals
+            print wq_vals, wq_times
             intrpwq = sciinterp(intrptime, wq_times, wq_vals)#interpolate.InterpolatedUnivariateSpline(wq_times, wq_vals, k=12)#interpolate.barycentric_interpolate(wq_times, wq_vals, x=intrptime)
             #intrpwq = intrpwq(intrptime)
             intrpflow = sciinterp(intrptime, flow_times, flow_vals)#interpolate.InterpolatedUnivariateSpline(flow_times, flow_vals, k=12)#interpolate.barycentric_interpolate(flow_times, flow_vals, x=intrptime)
             #intrpflow = intrpflow(intrptime)
         except:
-            #print wq_times, wq_vals
+            print wq_times, wq_vals
             #print flow_times, flow_vals
             intrpwq, intrpflow, intrptime = None, None, None
-        #print intrpwq, intrpflow
+        print intrpwq, intrpflow
         return intrptime, intrpwq, intrpflow
     else:
         return None, None, None
@@ -105,10 +104,10 @@ def interp(wq, flow, date, duration):
 def compute_flux_series(wqvalues, flowvalues, country):
     #unit conversion here, both wq concentrations should be in mg/L already
     if country == "CAN":
-        flowvalues = flowvalues * 24. * 3600.
+        flowvalues = flowvalues * 24 * 3600
     elif country == "US":
         flowvalues = flowvalues * 2446.572 # convert from cfs to m^3/day
-    return wqvalues * flowvalues / 1000. # should end up with kg/day
+    return wqvalues * flowvalues / 1000 # should end up with kg/day
     
 def compute_load(flux):
     # Outputs total kg over duration
@@ -181,8 +180,8 @@ def get_streamflow(country, stationid, date):
     return {"value":val, "time":val_times}
     
 def get_waterquality(country, stationid, parameter):
-    wq_request ="http://sos.chisp1.asascience.com/sos"
-    #wq_request ="http://localhost:8000/sos"
+    #wq_request ="http://sos.chisp1.asascience.com/sos"
+    wq_request ="http://localhost:8000/sos"
     wqsos_country_code = "network-all"
     wq_args = {"service":"SOS", 
                 "request":"GetObservation", 
@@ -244,10 +243,7 @@ def max(flow_dicts, gauges):
     try:
         for flow in flow_dicts:
             try:
-                if len(flow["value"]) > 0:
-                    means.append(np.asarray(flow["value"]).mean())
-                else:
-                    means.append(0)
+                means.append(np.asarray(flow["value"]).mean())
             except:
                 means.append(0)
         means = np.asarray(means)# find max at each timestep...?, also return the def. lat/lon pair for this trib

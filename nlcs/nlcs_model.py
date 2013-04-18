@@ -153,8 +153,8 @@ def get_streamflow(country, stationid, date):
                         "featureID":stationid, 
                         "offering":"UNIT",
                         "observedProperty":"00060",
-                        "beginPosition":date.isoformat().replace(str(date.year), str(date.year-1)),
-                        "endPosition":date.isoformat().replace(str(date.year), str(date.year+1)),
+                        "beginPosition":date.isoformat().replace(str(date.year), str(date.year-3)),
+                        "endPosition":date.isoformat().replace(str(date.year), str(date.year+3)),
                         "offering":"Mean",
                         }
         sos_endpoint = us_flow_request

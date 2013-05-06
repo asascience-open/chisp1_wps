@@ -39,7 +39,17 @@ def run(lake, parameter, date, duration):
         #except:
         #    pass
         trib_flow_data, lat, lon = max(flow_timeseries_dicts, gauges)
-        
+        try:
+            with open(tributary.name.replace(" ", "_").replace("(","").replace(")","") + "_flow.txt", 'w') as f:
+                temp = [i.isoformat() for i in trib_flow_data["time"]]
+                f.write(str(temp))
+                f.write(str(list(trib_flow_data["value"])))
+            with open(tributary.name.replace(" ", "_").replace("(","").replace(")","") + "_wq.txt", 'w') as f:
+                temp = [i.isoformat() for i in trib_wq_data["time"]]
+                f.write(str(temp))
+                f.write(str(list(trib_wq_data["value"])))
+        except:
+            pass
         trib_time_data, trib_wq_data, trib_flow_data = interp(trib_wq_data, trib_flow_data, date, duration)
         if trib_time_data != None:
             latitudes.append(lat)
@@ -47,6 +57,8 @@ def run(lake, parameter, date, duration):
             trib_flux_data = compute_flux_series(trib_wq_data, trib_flow_data, country)
             lake_loads.append(compute_load(trib_flux_data))
             names.append(tributary.name)
+            
+            
     return lake_loads, latitudes, longitudes, names
         
 
@@ -88,7 +100,7 @@ def interp(wq, flow, date, duration):
         elif duration.lower() == "day":
             intrptime = date.toordinal()
         try:
-            print wq_vals, flow_vals
+            #print wq_vals, flow_vals
             intrpwq = sciinterp(intrptime, wq_times, wq_vals)#interpolate.InterpolatedUnivariateSpline(wq_times, wq_vals, k=12)#interpolate.barycentric_interpolate(wq_times, wq_vals, x=intrptime)
             #intrpwq = intrpwq(intrptime)
             intrpflow = sciinterp(intrptime, flow_times, flow_vals)#interpolate.InterpolatedUnivariateSpline(flow_times, flow_vals, k=12)#interpolate.barycentric_interpolate(flow_times, flow_vals, x=intrptime)
